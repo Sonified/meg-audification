@@ -1,0 +1,1 @@
+"""Signal-to-sound conversion."""
