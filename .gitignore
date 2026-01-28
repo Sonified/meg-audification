@@ -18,8 +18,8 @@ data/processed/
 *.fif
 *.fif.gz
 
-# Audio output
-output/*.wav
+# Audio output (keeping WAV files in git - they're small ~260KB each)
+# output/*.wav
 output/*.mp3
 
 # Jupyter
