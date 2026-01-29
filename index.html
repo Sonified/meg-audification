@@ -1051,12 +1051,13 @@
                 minimapCacheDirty = true;
             }
 
-            // Rebuild cache if needed
-            if (minimapCacheDirty || !minimapCacheCanvas) {
+            // Rebuild cache if needed (skip during filter drag — too expensive)
+            if ((minimapCacheDirty || !minimapCacheCanvas) && !filterDragging) {
                 rebuildMinimapCache();
             }
 
-            // Blit cached waveform
+            // Blit cached waveform (skip if no cache yet)
+            if (!minimapCacheCanvas) return;
             minimapCtx.drawImage(minimapCacheCanvas, 0, 0);
 
             // --- Overlay (cheap, every frame) ---
@@ -1528,21 +1529,43 @@
             const fontBold = `bold ${10 * dpr}px monospace`;
             const samplesPerPixel = nSamples / waveformWidth;
 
+            // Draw labels for all channels
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
             for (let ch = 0; ch < nChannels; ch++) {
                 const y = ch * channelHeight + channelHeight / 2;
-                const color = _channelColors[ch];
                 const isSelected = selectedChannels.has(ch);
-
-                ctx.fillStyle = isSelected ? color : '#555';
+                ctx.fillStyle = isSelected ? _channelColors[ch] : '#555';
                 ctx.font = isSelected ? fontBold : fontNormal;
-                ctx.textAlign = 'right';
-                ctx.textBaseline = 'middle';
                 ctx.fillText(_channelShortNames[ch], labelWidth - 15 * dpr, y);
+            }
 
-                ctx.strokeStyle = isSelected ? color : 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = isSelected ? 1.5 : 1;
+            // Batch all unselected channels into ONE path (same color/width)
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let ch = 0; ch < nChannels; ch++) {
+                if (selectedChannels.has(ch)) continue;
+                const y = ch * channelHeight + channelHeight / 2;
+                for (let px = 0; px < waveformWidth; px++) {
+                    const sampleIdx = Math.floor(px * samplesPerPixel);
+                    const dataIdx = sampleIdx * nChannels + ch;
+                    if (dataIdx < data.length) {
+                        const yPos = y - data[dataIdx] * gainScale * halfChanH;
+                        if (px === 0) ctx.moveTo(labelWidth, yPos);
+                        else ctx.lineTo(labelWidth + px, yPos);
+                    }
+                }
+            }
+            ctx.stroke();
+
+            // Draw selected channels individually (each has unique color)
+            for (let ch = 0; ch < nChannels; ch++) {
+                if (!selectedChannels.has(ch)) continue;
+                const y = ch * channelHeight + channelHeight / 2;
+                ctx.strokeStyle = _channelColors[ch];
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
-
                 for (let px = 0; px < waveformWidth; px++) {
                     const sampleIdx = Math.floor(px * samplesPerPixel);
                     const dataIdx = sampleIdx * nChannels + ch;
@@ -2108,16 +2131,16 @@
         function drawFilterOverlay(ctx, pad, plotW, plotH, w, h, dpr, freqToX, handleTrackH) {
             const trackY = 0;
             const trackH = handleTrackH;
-            const handleW = 6 * dpr;
-            const handleH = trackH - 2 * dpr;
-            const handleR = 3 * dpr;
+            const triSize = 6 * dpr;  // triangle half-width
+            const activeColor = '#4db8ff';       // hot blue
+            const dimColor = 'rgba(77,184,255,0.25)';
 
             // --- Shaded rejection regions on the plot area ---
             if (highPassEnabled) {
                 const hpX = freqToX(highPassFreq);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
                 ctx.fillRect(pad.left, pad.top, hpX - pad.left, plotH);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.strokeStyle = 'rgba(77,184,255,0.5)';
                 ctx.lineWidth = 1.5;
                 ctx.setLineDash([4 * dpr, 3 * dpr]);
                 ctx.beginPath();
@@ -2131,7 +2154,7 @@
                 const lpX = freqToX(lowPassFreq);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
                 ctx.fillRect(lpX, pad.top, pad.left + plotW - lpX, plotH);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.strokeStyle = 'rgba(77,184,255,0.5)';
                 ctx.lineWidth = 1.5;
                 ctx.setLineDash([4 * dpr, 3 * dpr]);
                 ctx.beginPath();
@@ -2145,44 +2168,49 @@
             ctx.fillStyle = 'rgba(255,255,255,0.03)';
             ctx.fillRect(pad.left, trackY, plotW, trackH);
 
-            // --- HP handle ---
+            // --- HP handle: downward triangle ---
             const hpX = freqToX(highPassFreq);
-            const hpY = trackY + (trackH - handleH) / 2;
-
-            ctx.fillStyle = highPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            const hpColor = highPassEnabled ? activeColor : dimColor;
+            ctx.fillStyle = hpColor;
             ctx.beginPath();
-            ctx.roundRect(hpX - handleW / 2, hpY, handleW, handleH, handleR);
+            ctx.moveTo(hpX - triSize, trackY + 2 * dpr);
+            ctx.lineTo(hpX + triSize, trackY + 2 * dpr);
+            ctx.lineTo(hpX, trackY + 2 * dpr + triSize * 1.5);
+            ctx.closePath();
             ctx.fill();
 
             // HP label
             ctx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
-            ctx.fillStyle = highPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            ctx.fillStyle = hpColor;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`HP ${highPassFreq.toFixed(1)}`, hpX + handleW / 2 + 3 * dpr, trackY + trackH / 2);
+            ctx.fillText(`HP ${highPassFreq.toFixed(1)}`, hpX + triSize + 3 * dpr, trackY + trackH / 2);
 
-            // --- LP handle ---
+            // --- LP handle: downward triangle ---
             const lpX = freqToX(lowPassFreq);
-            const lpY = trackY + (trackH - handleH) / 2;
-
-            ctx.fillStyle = lowPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            const lpColor = lowPassEnabled ? activeColor : dimColor;
+            ctx.fillStyle = lpColor;
             ctx.beginPath();
-            ctx.roundRect(lpX - handleW / 2, lpY, handleW, handleH, handleR);
+            ctx.moveTo(lpX - triSize, trackY + 2 * dpr);
+            ctx.lineTo(lpX + triSize, trackY + 2 * dpr);
+            ctx.lineTo(lpX, trackY + 2 * dpr + triSize * 1.5);
+            ctx.closePath();
             ctx.fill();
 
             // LP label — flip to left side if too close to right edge
-            ctx.fillStyle = lowPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            ctx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
+            ctx.fillStyle = lpColor;
             const lpLabelText = `LP ${lowPassFreq.toFixed(1)}`;
             const lpLabelW = ctx.measureText(lpLabelText).width;
-            const lpRightEdge = lpX + handleW / 2 + 3 * dpr + lpLabelW;
+            const lpRightEdge = lpX + triSize + 3 * dpr + lpLabelW;
             if (lpRightEdge > pad.left + plotW) {
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(lpLabelText, lpX - handleW / 2 - 3 * dpr, trackY + trackH / 2);
+                ctx.fillText(lpLabelText, lpX - triSize - 3 * dpr, trackY + trackH / 2);
             } else {
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(lpLabelText, lpX + handleW / 2 + 3 * dpr, trackY + trackH / 2);
+                ctx.fillText(lpLabelText, lpX + triSize + 3 * dpr, trackY + trackH / 2);
             }
         }
 
@@ -2563,7 +2591,9 @@
             if (lowPassFilterNode) lowPassFilterNode.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
             if (scrubHPFilter) scrubHPFilter.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
             if (scrubLPFilter) scrubLPFilter.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
-            minimapCacheDirty = true;
+            // DON'T set minimapCacheDirty here — deferred to mouseup.
+            // Setting it per-mousemove causes rebuildMinimapCache (3.6M samples filtered)
+            // to run every animation frame during drag.
 
             // During drag: ONLY update the spectrum filter handle overlay.
             // Waveform + minimap are deferred to mouseup — they're too expensive per-frame.
@@ -2591,7 +2621,8 @@
 
             filterDragging = null;
             filterClickStart = null;
-            // Full redraw now that drag is done: spectrum (with FFT), waveform, minimap
+            // Now that drag is done: mark minimap dirty and do full redraws
+            minimapCacheDirty = true;
             if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
             if (regionData && !isPlaying) {
                 const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, regionData.duration_seconds);
@@ -2602,7 +2633,7 @@
                     drawPlayhead();
                 }
             }
-            if (minimapCacheDirty) drawMinimap();
+            drawMinimap();
         });
 
         // Cursor + hover: handle track gets grab cursor, plot area gets crosshair + hover
