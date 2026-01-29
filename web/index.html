@@ -501,11 +501,8 @@
 
             regionData = { ...region };
 
-            // Select all channels for audification by default
+            // Start with no channels selected — user clicks to select
             selectedChannels = new Set();
-            for (let i = 0; i < region.n_channels; i++) {
-                selectedChannels.add(i);
-            }
 
             const totalChunks = getTotalChunks();
             const bytesPerChunk = CHUNK_DURATION * region.sample_rate * region.n_channels * 4;
@@ -687,10 +684,11 @@
             const nChannels = regionData.n_channels;
             const nSamples = Math.floor(data.length / nChannels);
 
-            // Average selected channels to mono (or all if none selected)
-            const activeChannels = selectedChannels.size > 0
-                ? [...selectedChannels]
-                : Array.from({length: nChannels}, (_, i) => i);
+            if (selectedChannels.size === 0) {
+                status.textContent = 'No channels selected. Click channel labels to select.';
+                return;
+            }
+            const activeChannels = [...selectedChannels];
             const nActive = activeChannels.length;
 
             const mono = new Float32Array(nSamples);
@@ -1045,12 +1043,10 @@
         // Compute power spectrum from time-interleaved data
         // Returns { freqs: Float64Array, power: Float64Array } in original MEG Hz
         function computeSpectrum(data, nChannels, sampleRate) {
-            const nSamples = Math.floor(data.length / nChannels);
+            if (selectedChannels.size === 0) return null;
 
-            // Use selected channels (or all)
-            const activeChannels = selectedChannels.size > 0
-                ? [...selectedChannels]
-                : Array.from({length: nChannels}, (_, i) => i);
+            const nSamples = Math.floor(data.length / nChannels);
+            const activeChannels = [...selectedChannels];
             const nActive = activeChannels.length;
 
             // Average selected channels into mono
@@ -1122,10 +1118,17 @@
 
             if (!data || data.length === 0) return;
 
-            const { freqs, power, nBins } = computeSpectrum(data, nChannels, sampleRate);
+            const spectrum = computeSpectrum(data, nChannels, sampleRate);
+            if (!spectrum) return;
+            const { freqs, power, nBins } = spectrum;
 
-            // X range: 0 to Nyquist (500 Hz for 1000 Hz sample rate)
-            const maxFreq = sampleRate / 2;
+            // X range: 0 to 100 Hz (sqrt-scaled so low freqs get more room)
+            const maxFreq = 100;
+            const minFreq = 0.5;
+            const freqToX = (f) => {
+                if (f <= minFreq) return pad.left;
+                return pad.left + ((Math.sqrt(f) - Math.sqrt(minFreq)) / (Math.sqrt(maxFreq) - Math.sqrt(minFreq))) * plotW;
+            };
             // Y range: dB (typically -60 to 0)
             const dbMin = -60;
             const dbMax = 0;
@@ -1136,13 +1139,13 @@
             specCtx.font = `${9 * dpr}px monospace`;
             specCtx.fillStyle = '#555';
 
-            // Frequency axis labels
-            const freqTicks = [0, 10, 50, 100, 200, 500];
+            // Frequency axis labels (log-spaced)
+            const freqTicks = [1, 5, 10, 20, 50, 100];
             specCtx.textAlign = 'center';
             specCtx.textBaseline = 'top';
             for (const f of freqTicks) {
                 if (f > maxFreq) continue;
-                const x = pad.left + (f / maxFreq) * plotW;
+                const x = freqToX(f);
                 specCtx.beginPath();
                 specCtx.moveTo(x, pad.top);
                 specCtx.lineTo(x, pad.top + plotH);
@@ -1176,8 +1179,8 @@
                 { name: 'γ', lo: 30, hi: 100, color: '#666' },
             ];
             for (const b of bands) {
-                const x1 = pad.left + (b.lo / maxFreq) * plotW;
-                const x2 = pad.left + (b.hi / maxFreq) * plotW;
+                const x1 = freqToX(b.lo);
+                const x2 = freqToX(Math.min(b.hi, maxFreq));
                 specCtx.fillStyle = b.color === '#ff4444' ? 'rgba(255,68,68,0.08)' : 'rgba(255,255,255,0.02)';
                 specCtx.fillRect(x1, pad.top, x2 - x1, plotH);
                 specCtx.fillStyle = b.color;
@@ -1196,7 +1199,8 @@
             for (let i = 1; i < nBins; i++) {
                 const freq = freqs[i];
                 if (freq > maxFreq) break;
-                const x = pad.left + (freq / maxFreq) * plotW;
+                if (freq < 0.3) continue;
+                const x = freqToX(freq);
                 const db = Math.max(dbMin, Math.min(dbMax, power[i]));
                 const y = pad.top + ((dbMax - db) / (dbMax - dbMin)) * plotH;
 
