@@ -370,7 +370,7 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
 
                 case 'set-output-rate':
                     this.outputRate = Math.max(0.1, Math.min(8.0, data.rate));
-                    console.log(`⏩ Paul: Output rate: ${this.outputRate.toFixed(2)}x`);
+                    // console.log(`⏩ Paul: Output rate: ${this.outputRate.toFixed(2)}x`);
                     break;
 
                 case 'set-position':
