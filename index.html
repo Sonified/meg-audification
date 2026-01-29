@@ -359,6 +359,17 @@
             text-align: center; font-size: 11px; margin-top: 2px;
             color: rgba(224,224,224,0.4); transition: color 0.15s;
         }
+        #handSpeedPanel .hsp-sensitivity {
+            font-size: 11px; color: rgba(224,224,224,0.9); background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 3px;
+            padding: 3px 8px; cursor: ns-resize; user-select: none;
+            font-family: 'IBM Plex Mono', monospace; min-width: 52px;
+            text-align: center; display: inline-block;
+        }
+        #handSpeedPanel .hsp-sensitivity:hover { border-color: rgba(255,255,255,0.3); }
+        #handSpeedPanel .hsp-sensitivity.editing {
+            cursor: text; border-color: #5FB3B3; outline: none;
+        }
         #handSpeedPanel .hsp-pinch-indicator.active {
             color: #e8a838; font-weight: 600;
         }
@@ -459,8 +470,7 @@
             </div>
         </div>
     </div>
-    <div style="display: flex; gap: 16px; margin-top: -16px; margin-bottom: 24px;">
-        <div style="flex-shrink: 0; width: 715px;"></div>
+    <div style="display: flex; gap: 16px; margin-top: -16px; margin-bottom: 24px; justify-content: flex-end;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <span style="color: rgba(224,224,224,0.85); font-size: 14px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">Gain: <span id="gainValue">2.00</span>×</span>
             <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
@@ -485,6 +495,11 @@
                 <option value="8192">8192</option>
                 <option value="16384">16384</option>
             </select>
+        </div>
+        <!-- Volume control -->
+        <div style="display: flex; align-items: center; gap: 10px; margin-left: 16px;">
+            <span style="color: rgba(224,224,224,0.85); font-size: 14px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; display: inline-block; width: 80px;">Vol: <span id="volumeValue">100</span>%</span>
+            <input type="range" id="volumeSlider" min="0" max="100" value="100" step="1" style="width: 100px;">
         </div>
         <!-- Filter controls now live on the spectrum plot -->
     </div>
@@ -526,6 +541,7 @@
         <div id="handSpeedPanel">
             <div class="hsp-title">
                 <span>Pinch Speed</span>
+                <span class="hsp-sensitivity" id="hspSensitivity" title="Pinch sensitivity threshold (drag up/down or click to edit)">0.070</span>
             </div>
             <div class="hsp-speed" id="hspSpeedValue">1.00x</div>
             <div class="hsp-meter" id="hspMeter">
@@ -573,8 +589,11 @@
         let audioContext = null;
         let audioSource = null;
         let gainNode = null;
+        let masterGainNode = null;
+        let masterVolume = 1.0;
         const FADE_MS = 25;
         let isPlaying = false;
+        let pinchThreshold = parseFloat(localStorage.getItem('pinchThreshold')) || 0.070;
         let playStartTime = 0;
         let playStartOffset = 0;
 
@@ -684,7 +703,14 @@
             const na1 = a1 / a0, na2 = a2 / a0;
 
             for (let ch = 0; ch < nChannels; ch++) {
-                let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+                // Prime filter state to first sample to avoid startup transient at left edge
+                const firstVal = nSamples > 0 ? data[ch] : 0;
+                let x1 = firstVal, x2 = firstVal;
+                // Compute steady-state output for a DC input of firstVal:
+                // y_ss = firstVal * (nb0 + nb1 + nb2) / (1 + na1 + na2)
+                const dcGain = (nb0 + nb1 + nb2) / (1 + na1 + na2);
+                const y_ss = firstVal * dcGain;
+                let y1 = y_ss, y2 = y_ss;
                 for (let s = 0; s < nSamples; s++) {
                     const idx = s * nChannels + ch;
                     const x0 = data[idx];
@@ -1490,6 +1516,9 @@
         async function ensureAudioContext() {
             if (!audioContext) {
                 audioContext = new AudioContext();
+                masterGainNode = audioContext.createGain();
+                masterGainNode.gain.value = masterVolume;
+                masterGainNode.connect(audioContext.destination);
             }
             return audioContext;
         }
@@ -1565,10 +1594,10 @@
             if (reverbEnabled && reverbIRBuffer) {
                 const scrubReverb = createReverbSend(ctx);
                 scrubGainNode.connect(scrubReverb.input);
-                scrubReverb.output.connect(ctx.destination);
+                scrubReverb.output.connect(masterGainNode);
                 window._scrubReverbSend = scrubReverb;
             } else {
-                scrubGainNode.connect(ctx.destination);
+                scrubGainNode.connect(masterGainNode);
                 window._scrubReverbSend = null;
             }
 
@@ -1712,9 +1741,9 @@
             if (reverbEnabled && reverbIRBuffer) {
                 const reverb = createReverbSend(audioContext);
                 gainNode.connect(reverb.input);
-                reverb.output.connect(audioContext.destination);
+                reverb.output.connect(masterGainNode);
             } else {
-                gainNode.connect(audioContext.destination);
+                gainNode.connect(masterGainNode);
             }
 
             // Start from current playhead position (or beginning)
@@ -2107,6 +2136,16 @@
             } else if (e.key === 'r' || e.key === 'R') {
                 if (e.target.matches('input, select, textarea')) return;
                 document.getElementById('reverbToggle').click();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (e.target.matches('input, select, textarea')) return;
+                highPassEnabled = !highPassEnabled;
+                applyFilterChange();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (e.target.matches('input, select, textarea')) return;
+                lowPassEnabled = !lowPassEnabled;
+                applyFilterChange();
             } else if (e.key >= '1' && e.key <= '9') {
                 if (e.target.matches('input, select, textarea')) return;
                 if (!regionData || !regionData.channels) return;
@@ -2127,6 +2166,12 @@
                 });
                 if (isPlaying) { pauseAudio(); playAudio(); }
                 updateScrubBuffer();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setMasterVolume(masterVolume + 0.05);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setMasterVolume(masterVolume - 0.05);
             }
         });
 
@@ -2385,6 +2430,17 @@
             if (scrubWorkletReady && scrubWorkletNode) {
                 scrubWorkletNode.port.postMessage({ type: 'set-window-size', data: { size } });
             }
+        });
+
+        // ===== MASTER VOLUME =====
+        function setMasterVolume(val) {
+            masterVolume = Math.max(0, Math.min(1, val));
+            if (masterGainNode) masterGainNode.gain.value = masterVolume;
+            document.getElementById('volumeSlider').value = Math.round(masterVolume * 100);
+            document.getElementById('volumeValue').textContent = Math.round(masterVolume * 100);
+        }
+        document.getElementById('volumeSlider').addEventListener('input', (e) => {
+            setMasterVolume(parseInt(e.target.value) / 100);
         });
 
         // Filter controls now live on the spectrum plot — see spectrum mouse handlers below
@@ -3192,7 +3248,7 @@
                 highPassFreq = Math.max(0.1, Math.min(freq, maxHP));
             } else {
                 if (!lowPassEnabled) lowPassEnabled = true;
-                const minLP = highPassEnabled ? highPassFreq + MIN_FILTER_GAP : 0.2;
+                const minLP = Math.max(14, highPassEnabled ? highPassFreq + MIN_FILTER_GAP : 14);
                 lowPassFreq = Math.max(minLP, Math.min(freq, 500));
             }
 
@@ -3491,7 +3547,7 @@
                 // Highlight thumb + index tips for pinch
                 const thumbTip = hand[4], indexTip = hand[8];
                 const pinchDist = dist(thumbTip, indexTip);
-                const isPinch = pinchDist < 0.04;
+                const isPinch = pinchDist < pinchThreshold;
                 lmkCtx.fillStyle = isPinch ? '#ff6b6b' : '#5FB3B3';
                 for (const p of [thumbTip, indexTip]) {
                     lmkCtx.beginPath();
@@ -3574,14 +3630,16 @@
                         const thumbTip = hand[4];
                         const indexTip = hand[8];
                         const pinchDist = dist(thumbTip, indexTip);
-                        const isPinching = pinchDist < 0.04;
+                        const isPinching = pinchDist < pinchThreshold;
                         // Wrist Y (landmark 0) for vertical position (0=top, 1=bottom)
                         const handY = hand[0].y;
+                        const handX = hand[0].x;
                         window.handTracker = window.handTracker || {};
                         window.handTracker.detected = true;
                         window.handTracker.pinching = isPinching;
                         window.handTracker.pinchDist = pinchDist;
                         window.handTracker.handY = handY;
+                        window.handTracker.handX = handX;
                     } else {
                         if (window.handTracker) {
                             window.handTracker.detected = false;
@@ -3791,7 +3849,10 @@
             let loopId = null;
             // When pinch starts, record the hand Y and current speed
             let pinchAnchorY = null;
+            let pinchAnchorX = null;
             let anchorSpeed = 1.0;
+            let anchorLowPass = 40.0;
+            let smoothedLowPass = lowPassFreq;
             let currentSpeed = 1.0;
             const MIN_SPEED = 0.10;
             const MAX_SPEED = 4.0;
@@ -3877,19 +3938,39 @@
                     pinchStatus.className = 'hsp-pinch-indicator active';
 
                     if (pinchAnchorY === null) {
-                        // Pinch just started — anchor current position and speed
+                        // Pinch just started — anchor current position, speed, and low-pass
                         pinchAnchorY = ht.handY;
+                        pinchAnchorX = ht.handX;
                         anchorSpeed = currentSpeed;
+                        anchorLowPass = lowPassFreq;
+                        smoothedLowPass = lowPassFreq;
                     } else {
-                        // Compute delta: moving hand UP (smaller Y) = faster
-                        const deltaY = pinchAnchorY - ht.handY; // positive = hand moved up
-                        // Scale: full range of motion (~0.5 of frame) maps to full speed range
+                        // Y axis: moving hand UP (smaller Y) = faster
+                        const deltaY = pinchAnchorY - ht.handY;
                         const speedDelta = deltaY * (MAX_SPEED - MIN_SPEED) * 2;
                         applySpeed(anchorSpeed + speedDelta);
+
+                        // X axis: hand left/right controls low-pass cutoff
+                        // Video is mirrored: smaller X = user moved right
+                        const deltaX = pinchAnchorX - ht.handX;
+                        const freqDelta = deltaX * 220;
+                        const minLP = Math.max(14, highPassEnabled ? highPassFreq + 1.0 : 14);
+                        const targetLP = Math.max(minLP, Math.min(anchorLowPass + freqDelta, 500));
+                        smoothedLowPass += (targetLP - smoothedLowPass) * 0.25;
+                        lowPassFreq = smoothedLowPass;
+                        if (lowPassFilterNode) lowPassFilterNode.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+                        if (scrubLPFilter) scrubLPFilter.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+                        // DON'T set minimapCacheDirty here — deferred to pinch release
+                        // (same as UI drag: avoids 3.6M sample filter rebuild every frame)
+                        redrawSpectrumOverlay();
                     }
                 } else {
-                    // Not pinching — release anchor
+                    // Not pinching — release anchor and rebuild minimap
+                    if (pinchAnchorX !== null) {
+                        minimapCacheDirty = true;
+                    }
                     pinchAnchorY = null;
+                    pinchAnchorX = null;
                     if (ht && ht.detected) {
                         pinchStatus.textContent = 'Hand detected';
                         pinchStatus.className = 'hsp-pinch-indicator';
@@ -3911,6 +3992,7 @@
                     enabled = false;
                     if (loopId) { cancelAnimationFrame(loopId); loopId = null; }
                     pinchAnchorY = null;
+                    pinchAnchorX = null;
                     applySpeed(1.0);
                     pinchStatus.textContent = 'Pinch to control';
                     pinchStatus.className = 'hsp-pinch-indicator';
@@ -3918,6 +4000,66 @@
             };
 
             updateUI();
+        })();
+
+        // Pinch sensitivity number box (drag up/down or click to edit)
+        (function setupSensitivityBox() {
+            const box = document.getElementById('hspSensitivity');
+            let dragStartY = null, dragStartVal = null;
+
+            function updateDisplay() {
+                box.textContent = pinchThreshold.toFixed(3);
+                localStorage.setItem('pinchThreshold', pinchThreshold);
+            }
+
+            box.addEventListener('mousedown', (e) => {
+                if (box.classList.contains('editing')) return;
+                e.preventDefault();
+                dragStartY = e.clientY;
+                dragStartVal = pinchThreshold;
+
+                const onMove = (ev) => {
+                    const dy = dragStartY - ev.clientY; // up = positive
+                    pinchThreshold = Math.max(0.005, Math.min(0.200, dragStartVal + dy * 0.001));
+                    updateDisplay();
+                };
+                const onUp = (ev) => {
+                    window.removeEventListener('mousemove', onMove);
+                    window.removeEventListener('mouseup', onUp);
+                    // If barely moved, treat as click → enter edit mode
+                    if (Math.abs(ev.clientY - dragStartY) < 3) {
+                        box.classList.add('editing');
+                        box.contentEditable = true;
+                        box.focus();
+                        // Select all text
+                        const range = document.createRange();
+                        range.selectNodeContents(box);
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                };
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onUp);
+            });
+
+            function commitEdit() {
+                box.classList.remove('editing');
+                box.contentEditable = false;
+                const val = parseFloat(box.textContent);
+                if (!isNaN(val) && val > 0) {
+                    pinchThreshold = Math.max(0.005, Math.min(0.200, val));
+                }
+                updateDisplay();
+            }
+
+            box.addEventListener('blur', commitEdit);
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); box.blur(); }
+                if (e.key === 'Escape') { box.blur(); }
+            });
+
+            updateDisplay();
         })();
 
         // Start
