@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEG Audification</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧲</text></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 20px; color: #00d4ff; }
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        select, button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        select { background: #2a2a4a; color: #fff; }
+        button { background: #00d4ff; color: #1a1a2e; font-weight: bold; }
+        button:hover { background: #00a8cc; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .info {
+            background: #2a2a4a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 13px;
+            min-height: 80px;
+            max-height: 80px;
+        }
+        .data-display {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .sensor-map {
+            flex-shrink: 0;
+            width: 700px;
+            background: #0a0a1a;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .sensor-map img {
+            width: 100%;
+            height: auto;
+            border-radius: 3px;
+        }
+        #waveformContainer {
+            background: #0a0a1a;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        canvas { display: block; width: 100%; }
+        input[type="range"] { opacity: 0.5; }
+        .time-indicator {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #2a2a4a;
+            font-family: monospace;
+        }
+        .status {
+            padding: 10px;
+            background: #2a2a4a;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #seekSlider { width: 100%; margin: 10px 0; }
+        .cache-indicator {
+            display: flex;
+            gap: 2px;
+            margin: 10px 0;
+            height: 20px;
+        }
+        .chunk-bar {
+            flex: 1;
+            background: #333;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+        .chunk-bar.loaded { background: #00d4ff; }
+        .chunk-bar.loading { background: #ff9800; }
+        .chunk-bar.current { box-shadow: 0 0 5px #fff; }
+
+        /* Upload section */
+        .channel-selector {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #2a2a4a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .channel-selector label {
+            display: inline-block;
+            padding: 3px 8px;
+            margin: 2px;
+            background: #3a3a5a;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .channel-selector input:checked + span {
+            color: #00d4ff;
+        }
+        .quick-select {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .quick-select button {
+            padding: 5px 10px;
+            font-size: 12px;
+            background: #3a3a5a;
+        }
+
+        /* Tabs - commented out, see upload code below
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; background: #2a2a4a; border: none; border-radius: 5px 5px 0 0; color: #888; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .tab:hover { background: #3a3a5a; color: #ccc; }
+        .tab.active { background: #00d4ff; color: #1a1a2e; font-weight: bold; }
+        .tab-content { display: none; padding: 15px; background: #2a2a4a; border-radius: 0 5px 5px 5px; margin-bottom: 20px; }
+        .tab-content.active { display: block; }
+        */
+    </style>
+</head>
+<body>
+    <h1>MEG Audification Explorer</h1>
+
+    <!-- Region selector (demo data) -->
+    <div class="controls">
+        <select id="regionSelect">
+            <option value="">Loading regions...</option>
+        </select>
+        <button id="loadBtn" disabled>Load Region</button>
+        <button id="playBtn" disabled>Play</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <span style="color: #555; margin: 0 10px;">|</span>
+        <button id="preloadToggle" style="background: #4a8a4a; font-size: 13px; width: 180px; text-align: center;">Preload: Auto</button>
+        <span id="cacheStatus" style="color: #4a8a4a; font-size: 13px; margin-left: 8px;"></span>
+    </div>
+
+    <!--
+    ============================================================
+    COMMENTED OUT: Browser-based .mat upload
+
+    Reason: Large files (1 hour MEG = ~4GB) exceed browser memory.
+    For now, datasets are curated via scripts/export_regions.py.
+    This code is preserved for potential future use with smaller files
+    or if we add server-side processing.
+    ============================================================
+
+    <div class="tabs">
+        <button class="tab active" id="tabDemo">Demo Data</button>
+        <button class="tab" id="tabUpload">Upload .mat File</button>
+        <input type="file" id="fileInput" accept=".mat" style="display: none;">
+    </div>
+
+    <div class="tab-content active" id="contentDemo">
+        <div class="controls">
+            <select id="regionSelect">
+                <option value="">Loading regions...</option>
+            </select>
+            <button id="loadBtn" disabled>Load Region</button>
+        </div>
+    </div>
+
+    <div class="tab-content" id="contentUpload">
+        <div style="margin-bottom: 10px;">
+            <span id="uploadStatus" style="color: #888;">Click the tab above to select a .mat file</span>
+        </div>
+        <div id="uploadControls" style="display: none;">
+            <div class="quick-select">
+                <span style="color: #888;">Quick select:</span>
+                <button onclick="selectChannelRange(0, 50)">First 50</button>
+                <button onclick="selectChannelRange(0, 100)">First 100</button>
+                <button onclick="selectAllChannels()">All MEG</button>
+                <button onclick="selectNoChannels()">Clear</button>
+            </div>
+            <div class="channel-selector" id="channelSelector"></div>
+            <button id="loadUploadedBtn">Load Selected Channels</button>
+        </div>
+    </div>
+    -->
+
+    <div id="status" style="display:none;"></div>
+    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+        <div class="info" id="info" style="flex-shrink: 0; width: 700px;"></div>
+        <div id="spectrumContainer" style="flex: 1; background: #0a0a1a; border-radius: 5px; min-height: 80px; max-height: 80px; min-width: 0;">
+            <canvas id="spectrum"></canvas>
+        </div>
+    </div>
+
+    <div class="data-display">
+        <div class="sensor-map">
+            <img src="sensor_layout.jpeg" alt="Neuromag MEG sensor layout">
+        </div>
+        <div style="flex: 1; min-width: 0;">
+            <div>
+                <input type="range" id="seekSlider" min="0" max="133" value="0" step="0.1" style="width: 100%;">
+                <div id="cacheIndicator" style="display:none;"></div>
+                <div class="time-indicator">
+                    <span id="currentTime">0.00s</span>
+                    <span style="color: #ff4444;">Eyes closed @ 74s</span>
+                    <span id="totalTime">133.00s</span>
+                </div>
+            </div>
+            <div id="waveformContainer">
+                <canvas id="waveform"></canvas>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0;">
+                <span style="color: #aaa; font-size: 13px; white-space: nowrap;">Gain: <span id="gainValue">2.00</span>×</span>
+                <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
+                       style="flex: 1; max-width: 300px;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /*
+        ============================================================
+        COMMENTED OUT: MAT v5 Parser for browser-based upload
+
+        Reason: Large files exceed browser memory. See upload code below.
+        ============================================================
+
+        const MatParser = {
+            TYPES: { 1: 'int8', 2: 'uint8', 3: 'int16', 4: 'uint16', 5: 'int32', 6: 'uint32', 7: 'float32', 9: 'float64', 12: 'int64', 13: 'uint64', 14: 'matrix', 15: 'compressed', 16: 'utf8', 17: 'utf16', 18: 'utf32' },
+            read(arrayBuffer) { ... },
+            readElement(view, offset) { ... },
+            readMatrix(view, offset, totalSize, nextOffset) { ... },
+            skipSubelement(view, offset) { ... },
+            readDimensions(view, offset) { ... },
+            readName(view, offset) { ... },
+            readNumericData(view, offset, dimensions) { ... },
+            transpose(arr) { ... }
+        };
+        */
+
+        // ===== CONFIGURATION =====
+        const DATA_BASE_URL = '../data/processed/regions';
+        const CHUNK_DURATION = 5;  // seconds per chunk
+        const PREFETCH_AHEAD = 2;   // prefetch this many chunks ahead
+
+        // ===== STATE =====
+        let metadata = null;
+        let regionData = null;
+        let audioContext = null;
+        let audioSource = null;
+        let isPlaying = false;
+        let playStartTime = 0;
+        let playStartOffset = 0;
+
+        // Chunk cache: Map<chunkIndex, Float32Array>
+        let chunkCache = new Map();
+        let loadingChunks = new Set();  // Currently fetching
+        let isUploadedData = false;  // True when using uploaded .mat file
+        let preloadMode = 'auto';  // 'auto' = prefetch all, 'ondemand' = fetch only when needed
+        let selectedChannels = new Set();  // Channels selected for audification
+
+        // ===== DOM ELEMENTS =====
+        const regionSelect = document.getElementById('regionSelect');
+        const loadBtn = document.getElementById('loadBtn');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const info = document.getElementById('info');
+        const canvas = document.getElementById('waveform');
+        const ctx = canvas.getContext('2d');
+        const seekSlider = document.getElementById('seekSlider');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalTimeEl = document.getElementById('totalTime');
+        const cacheIndicator = document.getElementById('cacheIndicator');
+        const preloadToggle = document.getElementById('preloadToggle');
+        const spectrumCanvas = document.getElementById('spectrum');
+        const specCtx = spectrumCanvas.getContext('2d');
+
+        // ===== CHUNK MANAGEMENT =====
+
+        function getChunkIndex(timeSec) {
+            return Math.floor(timeSec / CHUNK_DURATION);
+        }
+
+        function getChunkTimeRange(chunkIndex) {
+            const start = chunkIndex * CHUNK_DURATION;
+            const end = Math.min(start + CHUNK_DURATION, regionData?.duration_seconds || 133);
+            return { start, end };
+        }
+
+        function getTotalChunks() {
+            if (!regionData) return 0;
+            return Math.ceil(regionData.duration_seconds / CHUNK_DURATION);
+        }
+
+        // Fetch a single chunk by index
+        async function fetchChunk(chunkIndex) {
+            if (!regionData) return null;
+            if (chunkCache.has(chunkIndex)) return chunkCache.get(chunkIndex);
+            if (loadingChunks.has(chunkIndex)) return null;  // Already loading
+
+            const { start, end } = getChunkTimeRange(chunkIndex);
+            if (start >= regionData.duration_seconds) return null;
+
+            loadingChunks.add(chunkIndex);
+            updateCacheIndicator();
+
+            const bytesPerSample = regionData.n_channels * 4;
+            const samplesPerSec = regionData.sample_rate;
+            const startByte = Math.floor(start * samplesPerSec * bytesPerSample);
+            const endByte = Math.floor(end * samplesPerSec * bytesPerSample);
+
+            console.log(`📦 Fetching chunk ${chunkIndex} (${start}s-${end}s): bytes ${startByte}-${endByte}`);
+
+            try {
+                const response = await fetch(`${DATA_BASE_URL}/${regionData.file}`, {
+                    headers: { 'Range': `bytes=${startByte}-${endByte - 1}` }
+                });
+
+                if (response.status === 206) {
+                    console.log(`✅ Chunk ${chunkIndex}: 206 Partial Content`);
+                } else {
+                    console.warn(`⚠️ Chunk ${chunkIndex}: ${response.status} (Range not supported?)`);
+                }
+
+                const buffer = await response.arrayBuffer();
+                const data = new Float32Array(buffer);
+
+                chunkCache.set(chunkIndex, data);
+                loadingChunks.delete(chunkIndex);
+                updateCacheIndicator();
+
+                return data;
+            } catch (err) {
+                console.error(`❌ Chunk ${chunkIndex} failed:`, err);
+                loadingChunks.delete(chunkIndex);
+                updateCacheIndicator();
+                return null;
+            }
+        }
+
+        // Fetch ALL chunks sequentially in background
+        async function fetchAllChunks() {
+            const totalChunks = getTotalChunks();
+            for (let i = 0; i < totalChunks; i++) {
+                if (!chunkCache.has(i) && !loadingChunks.has(i)) {
+                    await fetchChunk(i);
+                }
+            }
+            document.getElementById('cacheStatus').textContent = `All ${totalChunks} chunks loaded!`;
+        }
+
+        // Get data for a time range (from cache or fetch)
+        async function getDataForTimeRange(startSec, endSec) {
+            // For uploaded data, all data is in chunk 0
+            if (isUploadedData) {
+                const fullData = chunkCache.get(0);
+                if (!fullData) return null;
+                const offsetStart = Math.floor(startSec * regionData.sample_rate) * regionData.n_channels;
+                const offsetEnd = Math.floor(endSec * regionData.sample_rate) * regionData.n_channels;
+                return fullData.slice(offsetStart, Math.min(offsetEnd, fullData.length));
+            }
+
+            const startChunk = getChunkIndex(startSec);
+            const endChunk = getChunkIndex(endSec - 0.001);  // Avoid edge case
+
+            // Collect all needed chunks
+            const chunks = [];
+            for (let i = startChunk; i <= endChunk; i++) {
+                let data = chunkCache.get(i);
+                if (!data) {
+                    data = await fetchChunk(i);
+                }
+                if (data) chunks.push({ index: i, data });
+            }
+
+            if (chunks.length === 0) return null;
+
+            // If single chunk, slice to exact range
+            if (chunks.length === 1) {
+                const chunk = chunks[0];
+                const chunkStart = chunk.index * CHUNK_DURATION;
+                const offsetStart = Math.floor((startSec - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+                const offsetEnd = Math.floor((endSec - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+                return chunk.data.slice(offsetStart, Math.min(offsetEnd, chunk.data.length));
+            }
+
+            // Multiple chunks - concatenate
+            // First, calculate actual total size by summing slices
+            let totalSize = 0;
+            const slices = [];
+
+            for (const chunk of chunks) {
+                const chunkStart = chunk.index * CHUNK_DURATION;
+                const chunkEnd = Math.min(chunkStart + CHUNK_DURATION, regionData.duration_seconds);
+
+                const sliceStart = Math.max(startSec, chunkStart);
+                const sliceEnd = Math.min(endSec, chunkEnd);
+
+                const offsetStart = Math.floor((sliceStart - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+                const offsetEnd = Math.floor((sliceEnd - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+
+                const slice = chunk.data.slice(offsetStart, Math.min(offsetEnd, chunk.data.length));
+                slices.push(slice);
+                totalSize += slice.length;
+            }
+
+            // Now allocate and copy
+            const result = new Float32Array(totalSize);
+            let writeOffset = 0;
+            for (const slice of slices) {
+                result.set(slice, writeOffset);
+                writeOffset += slice.length;
+            }
+
+            return result;
+        }
+
+        // Update cache indicator UI
+        function updateCacheIndicator() {
+            const totalChunks = getTotalChunks();
+            if (!totalChunks) return;
+
+            cacheIndicator.innerHTML = '';
+            for (let i = 0; i < totalChunks; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'chunk-bar';
+                if (chunkCache.has(i)) bar.classList.add('loaded');
+                if (loadingChunks.has(i)) bar.classList.add('loading');
+                bar.title = `Chunk ${i}: ${i * CHUNK_DURATION}s - ${(i + 1) * CHUNK_DURATION}s`;
+                cacheIndicator.appendChild(bar);
+            }
+        }
+
+        // ===== INITIALIZATION =====
+
+        async function init() {
+            try {
+                const response = await fetch(`${DATA_BASE_URL}/metadata.json`);
+                metadata = await response.json();
+
+                regionSelect.innerHTML = '<option value="">Select a region...</option>';
+                for (const [key, region] of Object.entries(metadata.regions)) {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = `${region.description} (${region.n_channels} ch)`;
+                    regionSelect.appendChild(opt);
+                }
+
+                // Default to left occipital
+                if (metadata.regions['left_occipital']) {
+                    regionSelect.value = 'left_occipital';
+                }
+
+                // Enter key triggers load
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && regionSelect.value && !loadBtn.disabled) {
+                        loadRegion();
+                    }
+                });
+
+                loadBtn.disabled = false;
+                document.getElementById('cacheStatus').textContent = 'Ready. Press Enter or click Load.';
+            } catch (err) {
+                document.getElementById('cacheStatus').textContent = `Error: ${err.message}`;
+                console.error(err);
+            }
+        }
+
+        // ===== LOAD REGION =====
+
+        async function loadRegion() {
+            const regionKey = regionSelect.value;
+            if (!regionKey) return;
+
+            const region = metadata.regions[regionKey];
+            status.textContent = `Loading ${region.description}...`;
+            loadBtn.disabled = true;
+
+            // Reset cache
+            chunkCache = new Map();
+            loadingChunks = new Set();
+            isUploadedData = false;
+
+            regionData = { ...region };
+
+            // Select all channels for audification by default
+            selectedChannels = new Set();
+            for (let i = 0; i < region.n_channels; i++) {
+                selectedChannels.add(i);
+            }
+
+            const totalChunks = getTotalChunks();
+            const bytesPerChunk = CHUNK_DURATION * region.sample_rate * region.n_channels * 4;
+
+            info.innerHTML = `
+                <strong>${region.description}</strong><br>
+                Channels: ${region.n_channels} | Duration: ${region.duration_seconds}s | Sample rate: ${region.sample_rate} Hz<br>
+                <span style="color: #00d4ff;">Chunk size: ${CHUNK_DURATION}s (${(bytesPerChunk/1024).toFixed(0)} KB) | ${totalChunks} total chunks</span>
+            `;
+
+            // Setup canvas
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            const canvasH = Math.min(region.n_channels * 30, 900);
+            canvas.height = canvasH * window.devicePixelRatio;
+            canvas.style.height = `${canvasH}px`;
+
+            // Setup cache indicator
+            updateCacheIndicator();
+
+            // Fetch first chunk and draw immediately
+            await fetchChunk(0);
+            await drawTimeRange(0, 5);
+
+            // Start background fetch of ALL remaining chunks (if auto mode)
+            if (preloadMode === 'auto') {
+                fetchAllChunks();
+            }
+
+            playBtn.disabled = false;
+            stopBtn.disabled = false;
+            loadBtn.disabled = false;
+            document.getElementById('cacheStatus').textContent = 'Loaded. Streaming chunks.';
+        }
+
+        // ===== DRAWING =====
+
+        async function drawTimeRange(startSec, durationSec) {
+            if (!regionData) return;
+
+            const endSec = Math.min(startSec + durationSec, regionData.duration_seconds);
+            const data = await getDataForTimeRange(startSec, endSec);
+
+            if (!data || data.length === 0) {
+                status.textContent = `No data for ${startSec.toFixed(1)}s - ${endSec.toFixed(1)}s`;
+                return;
+            }
+
+            const nChannels = regionData.n_channels;
+            const nSamples = data.length / nChannels;
+            const width = canvas.width;
+            const height = canvas.height;
+            const channelHeight = height / nChannels;
+            const labelWidth = 70 * window.devicePixelRatio;  // Left margin for labels
+            const waveformWidth = width - labelWidth;
+            const displayGain = parseFloat(document.getElementById('gainSlider').value);
+
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw each channel
+            for (let ch = 0; ch < nChannels; ch++) {
+                const y = ch * channelHeight + channelHeight / 2;
+                const color = `hsl(${(ch * 360 / nChannels)}, 70%, 60%)`;
+
+                // Channel label on left
+                const chName = regionData.channels?.[ch] || `CH${ch}`;
+                const shortName = chName.replace('MEG', '');  // "MEG2112" -> "2112"
+                const isSelected = selectedChannels.has(ch);
+                if (isSelected) {
+                    ctx.fillStyle = color;
+                    ctx.font = `bold ${10 * window.devicePixelRatio}px monospace`;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 6 * window.devicePixelRatio;
+                } else {
+                    ctx.fillStyle = '#555';
+                    ctx.font = `${10 * window.devicePixelRatio}px monospace`;
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                }
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(shortName, labelWidth - 15 * window.devicePixelRatio, y);
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+
+                // Dash line connecting label to waveform
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(labelWidth - 10 * window.devicePixelRatio, y);
+                ctx.lineTo(labelWidth, y);
+                ctx.stroke();
+
+                // Baseline
+                ctx.strokeStyle = '#222';
+                ctx.beginPath();
+                ctx.moveTo(labelWidth, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+
+                // Waveform
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+
+                const samplesPerPixel = nSamples / waveformWidth;
+
+                for (let px = 0; px < waveformWidth; px++) {
+                    const sampleIdx = Math.floor(px * samplesPerPixel);
+                    const dataIdx = sampleIdx * nChannels + ch;
+
+                    if (dataIdx < data.length) {
+                        const value = data[dataIdx];
+                        const normalized = value / 1e-10 * displayGain;
+                        const yPos = y - normalized * (channelHeight * 0.4);
+
+                        if (px === 0) ctx.moveTo(labelWidth + px, yPos);
+                        else ctx.lineTo(labelWidth + px, yPos);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Eyes-closed marker
+            if (startSec <= 74 && endSec >= 74) {
+                const markerX = labelWidth + ((74 - startSec) / durationSec) * waveformWidth;
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(markerX, 0);
+                ctx.lineTo(markerX, height);
+                ctx.stroke();
+                ctx.fillStyle = '#ff4444';
+                ctx.font = `${12 * window.devicePixelRatio}px sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.fillText('Eyes Closed', markerX + 5, 15 * window.devicePixelRatio);
+            }
+
+            // Time range label (lower right)
+            ctx.fillStyle = '#666';
+            ctx.font = `${11 * window.devicePixelRatio}px monospace`;
+            ctx.textAlign = 'right';
+            ctx.fillText(`${startSec.toFixed(1)}s - ${endSec.toFixed(1)}s`, width - 10 * window.devicePixelRatio, height - 10 * window.devicePixelRatio);
+
+            // Update current chunk highlight
+            const currentChunk = getChunkIndex(startSec);
+            document.querySelectorAll('.chunk-bar').forEach((bar, i) => {
+                bar.classList.toggle('current', i === currentChunk);
+            });
+
+            // Update power spectrum
+            drawSpectrum(data, nChannels, regionData.sample_rate);
+        }
+
+        // ===== PLAYBACK =====
+        // Play 1000 Hz MEG data at 44100 Hz = 44.1x frequency shift
+        // 10 Hz alpha → 441 Hz (audible!)
+        // 5 seconds of MEG → ~0.11 seconds of audio
+
+        async function playAudio() {
+            if (!regionData) return;
+
+            // Get current visible time range from slider
+            const currentTime = parseFloat(seekSlider.value);
+            const startSec = Math.max(0, currentTime - 2.5);
+            const endSec = Math.min(startSec + CHUNK_DURATION, regionData.duration_seconds);
+            const playDuration = endSec - startSec;
+
+            status.textContent = `Loading audio for ${startSec.toFixed(1)}s - ${endSec.toFixed(1)}s...`;
+
+            // Fetch the data for this range (will use cache if available)
+            const data = await getDataForTimeRange(startSec, endSec);
+
+            if (!data || data.length === 0) {
+                status.textContent = 'No data available for this range';
+                return;
+            }
+
+            const nChannels = regionData.n_channels;
+            const nSamples = Math.floor(data.length / nChannels);
+
+            // Average selected channels to mono (or all if none selected)
+            const activeChannels = selectedChannels.size > 0
+                ? [...selectedChannels]
+                : Array.from({length: nChannels}, (_, i) => i);
+            const nActive = activeChannels.length;
+
+            const mono = new Float32Array(nSamples);
+            for (let s = 0; s < nSamples; s++) {
+                let sum = 0;
+                for (let i = 0; i < nActive; i++) {
+                    sum += data[s * nChannels + activeChannels[i]];
+                }
+                mono[s] = sum / nActive;
+            }
+
+            // Normalize to [-1, 1]
+            let maxAbs = 0;
+            for (let i = 0; i < mono.length; i++) {
+                const abs = Math.abs(mono[i]);
+                if (abs > maxAbs) maxAbs = abs;
+            }
+            if (maxAbs > 0) {
+                for (let i = 0; i < mono.length; i++) {
+                    mono[i] /= maxAbs;
+                }
+            }
+
+            // Create audio context and buffer
+            if (!audioContext) {
+                audioContext = new AudioContext();
+            }
+
+            // Create buffer at 44100 Hz - this is the key trick!
+            // 1000 Hz data played at 44100 Hz = 44.1x speedup
+            const audioBuffer = audioContext.createBuffer(1, nSamples, 44100);
+            audioBuffer.copyToChannel(mono, 0);
+
+            // Play it
+            if (audioSource) {
+                audioSource.stop();
+            }
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioBuffer;
+            audioSource.connect(audioContext.destination);
+            audioSource.start();
+
+            isPlaying = true;
+            playBtn.textContent = 'Playing...';
+
+            const audioDuration = nSamples / 44100;
+            status.textContent = `Playing ${playDuration.toFixed(1)}s of MEG (${startSec.toFixed(1)}s-${endSec.toFixed(1)}s) as ${(audioDuration * 1000).toFixed(0)}ms audio (44.1× speedup)`;
+
+            audioSource.onended = () => {
+                isPlaying = false;
+                playBtn.textContent = 'Play';
+                status.textContent = 'Playback complete.';
+            };
+        }
+
+        function stopAudio() {
+            if (audioSource) {
+                audioSource.stop();
+                audioSource = null;
+            }
+            isPlaying = false;
+            playBtn.textContent = 'Play';
+        }
+
+        // ===== EVENT LISTENERS =====
+
+        loadBtn.addEventListener('click', loadRegion);
+        playBtn.addEventListener('click', playAudio);
+        stopBtn.addEventListener('click', stopAudio);
+
+        // Channel selection via canvas click
+        canvas.addEventListener('click', (e) => {
+            if (!regionData) return;
+            const rect = canvas.getBoundingClientRect();
+            const clickY = (e.clientY - rect.top) * window.devicePixelRatio;
+            const nChannels = regionData.n_channels;
+            const height = canvas.height;
+            const channelHeight = height / nChannels;
+            const labelWidth = 70 * window.devicePixelRatio;
+            const clickX = (e.clientX - rect.left) * window.devicePixelRatio;
+
+            // Only respond to clicks in the label area
+            if (clickX > labelWidth) return;
+
+            const ch = Math.floor(clickY / channelHeight);
+            if (ch < 0 || ch >= nChannels) return;
+
+            if (selectedChannels.has(ch)) {
+                selectedChannels.delete(ch);
+            } else {
+                selectedChannels.add(ch);
+            }
+
+            // Redraw to update label appearance
+            const time = parseFloat(seekSlider.value);
+            const startSec = Math.max(0, time - 2.5);
+            drawTimeRange(startSec, 5);
+        });
+
+        // Pointer cursor over label area
+        canvas.addEventListener('mousemove', (e) => {
+            if (!regionData) return;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = (e.clientX - rect.left) * window.devicePixelRatio;
+            const labelWidth = 70 * window.devicePixelRatio;
+            canvas.style.cursor = clickX <= labelWidth ? 'pointer' : 'default';
+        });
+
+        // Preload mode toggle
+        preloadToggle.addEventListener('click', () => {
+            if (preloadMode === 'auto') {
+                preloadMode = 'ondemand';
+                preloadToggle.textContent = 'Preload: On Demand';
+                preloadToggle.style.background = '#aa5555';
+            } else {
+                preloadMode = 'auto';
+                preloadToggle.textContent = 'Preload: Auto';
+                preloadToggle.style.background = '#4a8a4a';
+                // If we have region data, start prefetching
+                if (regionData && !isUploadedData) {
+                    fetchAllChunks();
+                }
+            }
+        });
+
+        // Seek slider - draw from cache (loading happens in background)
+        seekSlider.addEventListener('input', async () => {
+            const time = parseFloat(seekSlider.value);
+            currentTimeEl.textContent = `${time.toFixed(2)}s`;
+
+            const startSec = Math.max(0, time - 2.5);
+            const endSec = Math.min(startSec + 5, regionData?.duration_seconds || 133);
+
+            // Draw (will use cache if available, fetch if not)
+            await drawTimeRange(startSec, 5);
+
+            // Prefetch adjacent chunks (non-blocking)
+            if (preloadMode === 'ondemand' && regionData && !isUploadedData) {
+                const currentChunk = getChunkIndex(time);
+                const totalChunks = getTotalChunks();
+                // Prefetch next 2 chunks and previous 1 chunk
+                for (let offset = -1; offset <= PREFETCH_AHEAD; offset++) {
+                    const chunkIdx = currentChunk + offset;
+                    if (chunkIdx >= 0 && chunkIdx < totalChunks && !chunkCache.has(chunkIdx) && !loadingChunks.has(chunkIdx)) {
+                        fetchChunk(chunkIdx);  // Fire and forget
+                    }
+                }
+            }
+        });
+
+        // Gain slider - redraw waveform with new amplitude
+        const gainSlider = document.getElementById('gainSlider');
+        const gainValueEl = document.getElementById('gainValue');
+        gainSlider.addEventListener('input', () => {
+            const gain = parseFloat(gainSlider.value);
+            gainValueEl.textContent = gain.toFixed(2);
+            // Redraw with current view
+            if (regionData) {
+                const time = parseFloat(seekSlider.value);
+                const startSec = Math.max(0, time - 2.5);
+                drawTimeRange(startSec, 5);
+            }
+        });
+
+        /*
+        ============================================================
+        COMMENTED OUT: Browser-based .mat upload functionality
+
+        Reason: Large files (1 hour MEG = ~4GB) exceed browser memory.
+        For now, datasets are curated via scripts/export_regions.py.
+        ============================================================
+
+        // ===== TAB HANDLING =====
+        const tabDemo = document.getElementById('tabDemo');
+        const tabUpload = document.getElementById('tabUpload');
+        const contentDemo = document.getElementById('contentDemo');
+        const contentUpload = document.getElementById('contentUpload');
+
+        tabDemo.addEventListener('click', () => {
+            tabDemo.classList.add('active');
+            tabUpload.classList.remove('active');
+            contentDemo.classList.add('active');
+            contentUpload.classList.remove('active');
+        });
+
+        tabUpload.addEventListener('click', () => {
+            tabUpload.classList.add('active');
+            tabDemo.classList.remove('active');
+            contentUpload.classList.add('active');
+            contentDemo.classList.remove('active');
+            fileInput.click();
+        });
+
+        // ===== FILE UPLOAD HANDLING =====
+        let uploadedMatData = null;
+        let uploadedChannelNames = [];
+        let uploadedSampleRate = 1000;
+
+        const uploadStatus = document.getElementById('uploadStatus');
+        const fileInput = document.getElementById('fileInput');
+        const uploadControls = document.getElementById('uploadControls');
+        const channelSelector = document.getElementById('channelSelector');
+        const loadUploadedBtn = document.getElementById('loadUploadedBtn');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                handleMatFile(fileInput.files[0]);
+            }
+        });
+
+        async function handleMatFile(file) {
+            status.textContent = `Parsing ${file.name}...`;
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const mat = MatParser.read(arrayBuffer);
+                let dataKey = Object.keys(mat).find(k =>
+                    k.toLowerCase().includes('data') && !k.includes('filt')
+                ) || Object.keys(mat)[0];
+                const rawData = mat[dataKey];
+                if (!rawData || !rawData.length) {
+                    throw new Error('No data array found in .mat file');
+                }
+                const nChannels = rawData.length;
+                const nSamples = rawData[0]?.length || 0;
+                uploadedMatData = rawData;
+                if (mat.ch_names) {
+                    uploadedChannelNames = mat.ch_names;
+                } else {
+                    uploadedChannelNames = Array.from({length: nChannels}, (_, i) => `CH${i}`);
+                }
+                const megIndices = [];
+                uploadedChannelNames.forEach((name, i) => {
+                    if (typeof name === 'string' && name.startsWith('MEG')) {
+                        megIndices.push(i);
+                    }
+                });
+                channelSelector.innerHTML = '';
+                uploadedChannelNames.forEach((name, i) => {
+                    const isMeg = megIndices.includes(i);
+                    const label = document.createElement('label');
+                    label.innerHTML = `<input type="checkbox" value="${i}" ${isMeg ? 'checked' : ''}><span>${name}</span>`;
+                    channelSelector.appendChild(label);
+                });
+                uploadControls.style.display = 'block';
+                uploadStatus.innerHTML = `✓ ${file.name} (${nChannels} ch × ${(nSamples/1000).toFixed(1)}s)`;
+            } catch (err) {
+                status.textContent = `Error parsing .mat file: ${err.message}`;
+                console.error(err);
+            }
+        }
+
+        function selectChannelRange(start, count) {
+            const checkboxes = channelSelector.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach((cb, i) => {
+                cb.checked = (i >= start && i < start + count);
+            });
+        }
+        function selectAllChannels() {
+            channelSelector.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+        function selectNoChannels() {
+            channelSelector.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        loadUploadedBtn.addEventListener('click', async () => {
+            if (!uploadedMatData) return;
+            const selectedIndices = [];
+            const selectedNames = [];
+            channelSelector.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                const idx = parseInt(cb.value);
+                selectedIndices.push(idx);
+                selectedNames.push(uploadedChannelNames[idx]);
+            });
+            if (selectedIndices.length === 0) {
+                status.textContent = 'Please select at least one channel';
+                return;
+            }
+            const nChannels = selectedIndices.length;
+            const nSamples = uploadedMatData[0].length;
+            const interleaved = new Float32Array(nSamples * nChannels);
+            for (let s = 0; s < nSamples; s++) {
+                for (let c = 0; c < nChannels; c++) {
+                    interleaved[s * nChannels + c] = uploadedMatData[selectedIndices[c]][s];
+                }
+            }
+            chunkCache = new Map();
+            chunkCache.set(0, interleaved);
+            isUploadedData = true;
+            regionData = {
+                description: `Uploaded (${nChannels} ch)`,
+                channels: selectedNames,
+                n_channels: nChannels,
+                n_samples: nSamples,
+                sample_rate: uploadedSampleRate,
+                duration_seconds: nSamples / uploadedSampleRate,
+            };
+            info.innerHTML = `
+                <strong>Uploaded Data</strong><br>
+                Channels: ${nChannels} | Duration: ${regionData.duration_seconds.toFixed(1)}s | Sample rate: ${uploadedSampleRate} Hz
+            `;
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = Math.min(nChannels * 25, 900) * window.devicePixelRatio;
+            canvas.style.height = `${Math.min(nChannels * 25, 900)}px`;
+            seekSlider.max = regionData.duration_seconds;
+            totalTimeEl.textContent = `${regionData.duration_seconds.toFixed(2)}s`;
+            cacheIndicator.innerHTML = '<div style="color: #00d4ff; font-size: 12px;">All data in memory</div>';
+            await drawTimeRange(0, 5);
+            playBtn.disabled = false;
+            stopBtn.disabled = false;
+            status.textContent = `Loaded ${nChannels} channels. Ready to explore!`;
+        });
+        */
+
+        // ===== FFT & POWER SPECTRUM =====
+
+        // Radix-2 Cooley-Tukey FFT (in-place)
+        function fft(re, im) {
+            const n = re.length;
+            // Bit-reversal permutation
+            for (let i = 1, j = 0; i < n; i++) {
+                let bit = n >> 1;
+                while (j & bit) { j ^= bit; bit >>= 1; }
+                j ^= bit;
+                if (i < j) {
+                    [re[i], re[j]] = [re[j], re[i]];
+                    [im[i], im[j]] = [im[j], im[i]];
+                }
+            }
+            // FFT butterfly
+            for (let len = 2; len <= n; len <<= 1) {
+                const halfLen = len >> 1;
+                const angle = -2 * Math.PI / len;
+                const wRe = Math.cos(angle);
+                const wIm = Math.sin(angle);
+                for (let i = 0; i < n; i += len) {
+                    let curRe = 1, curIm = 0;
+                    for (let j = 0; j < halfLen; j++) {
+                        const tRe = curRe * re[i + j + halfLen] - curIm * im[i + j + halfLen];
+                        const tIm = curRe * im[i + j + halfLen] + curIm * re[i + j + halfLen];
+                        re[i + j + halfLen] = re[i + j] - tRe;
+                        im[i + j + halfLen] = im[i + j] - tIm;
+                        re[i + j] += tRe;
+                        im[i + j] += tIm;
+                        const newCurRe = curRe * wRe - curIm * wIm;
+                        curIm = curRe * wIm + curIm * wRe;
+                        curRe = newCurRe;
+                    }
+                }
+            }
+        }
+
+        // Compute power spectrum from time-interleaved data
+        // Returns { freqs: Float64Array, power: Float64Array } in original MEG Hz
+        function computeSpectrum(data, nChannels, sampleRate) {
+            const nSamples = Math.floor(data.length / nChannels);
+
+            // Use selected channels (or all)
+            const activeChannels = selectedChannels.size > 0
+                ? [...selectedChannels]
+                : Array.from({length: nChannels}, (_, i) => i);
+            const nActive = activeChannels.length;
+
+            // Average selected channels into mono
+            const mono = new Float64Array(nSamples);
+            for (let s = 0; s < nSamples; s++) {
+                let sum = 0;
+                for (let i = 0; i < nActive; i++) {
+                    sum += data[s * nChannels + activeChannels[i]];
+                }
+                mono[s] = sum / nActive;
+            }
+
+            // Pad to next power of 2
+            let fftSize = 1;
+            while (fftSize < nSamples) fftSize <<= 1;
+
+            // Apply Hann window and copy to FFT buffers
+            const re = new Float64Array(fftSize);
+            const im = new Float64Array(fftSize);
+            for (let i = 0; i < nSamples; i++) {
+                const window = 0.5 * (1 - Math.cos(2 * Math.PI * i / (nSamples - 1)));
+                re[i] = mono[i] * window;
+            }
+
+            fft(re, im);
+
+            // Power spectrum (magnitude squared), only positive frequencies
+            const nBins = fftSize / 2;
+            const power = new Float64Array(nBins);
+            const freqs = new Float64Array(nBins);
+            const freqRes = sampleRate / fftSize;
+
+            for (let i = 0; i < nBins; i++) {
+                freqs[i] = i * freqRes;  // Already in original MEG Hz
+                power[i] = re[i] * re[i] + im[i] * im[i];
+            }
+
+            // Convert to dB
+            let maxPower = 0;
+            for (let i = 1; i < nBins; i++) {
+                if (power[i] > maxPower) maxPower = power[i];
+            }
+            if (maxPower > 0) {
+                for (let i = 0; i < nBins; i++) {
+                    power[i] = 10 * Math.log10(power[i] / maxPower + 1e-12);
+                }
+            }
+
+            return { freqs, power, nBins, freqRes };
+        }
+
+        // Draw power spectrum line plot
+        function drawSpectrum(data, nChannels, sampleRate) {
+            const container = document.getElementById('spectrumContainer');
+            const dpr = window.devicePixelRatio;
+            spectrumCanvas.width = container.clientWidth * dpr;
+            spectrumCanvas.height = container.clientHeight * dpr;
+            spectrumCanvas.style.width = '100%';
+            spectrumCanvas.style.height = '100%';
+
+            const w = spectrumCanvas.width;
+            const h = spectrumCanvas.height;
+            const pad = { left: 35 * dpr, right: 10 * dpr, top: 8 * dpr, bottom: 18 * dpr };
+            const plotW = w - pad.left - pad.right;
+            const plotH = h - pad.top - pad.bottom;
+
+            specCtx.fillStyle = '#0a0a1a';
+            specCtx.fillRect(0, 0, w, h);
+
+            if (!data || data.length === 0) return;
+
+            const { freqs, power, nBins } = computeSpectrum(data, nChannels, sampleRate);
+
+            // X range: 0 to Nyquist (500 Hz for 1000 Hz sample rate)
+            const maxFreq = sampleRate / 2;
+            // Y range: dB (typically -60 to 0)
+            const dbMin = -60;
+            const dbMax = 0;
+
+            // Grid lines
+            specCtx.strokeStyle = '#222';
+            specCtx.lineWidth = 1;
+            specCtx.font = `${9 * dpr}px monospace`;
+            specCtx.fillStyle = '#555';
+
+            // Frequency axis labels
+            const freqTicks = [0, 10, 50, 100, 200, 500];
+            specCtx.textAlign = 'center';
+            specCtx.textBaseline = 'top';
+            for (const f of freqTicks) {
+                if (f > maxFreq) continue;
+                const x = pad.left + (f / maxFreq) * plotW;
+                specCtx.beginPath();
+                specCtx.moveTo(x, pad.top);
+                specCtx.lineTo(x, pad.top + plotH);
+                specCtx.stroke();
+                specCtx.fillText(`${f}`, x, pad.top + plotH + 2 * dpr);
+            }
+
+            // dB axis labels
+            specCtx.textAlign = 'right';
+            specCtx.textBaseline = 'middle';
+            for (let db = dbMin; db <= dbMax; db += 20) {
+                const y = pad.top + ((dbMax - db) / (dbMax - dbMin)) * plotH;
+                specCtx.beginPath();
+                specCtx.moveTo(pad.left, y);
+                specCtx.lineTo(pad.left + plotW, y);
+                specCtx.stroke();
+                specCtx.fillText(`${db}`, pad.left - 3 * dpr, y);
+            }
+
+            // "Hz" label
+            specCtx.textAlign = 'center';
+            specCtx.fillStyle = '#444';
+            specCtx.fillText('Hz', pad.left + plotW / 2, h - 1 * dpr);
+
+            // Band markers (alpha, beta, etc.)
+            const bands = [
+                { name: 'δ', lo: 0.5, hi: 4, color: '#666' },
+                { name: 'θ', lo: 4, hi: 8, color: '#666' },
+                { name: 'α', lo: 8, hi: 13, color: '#ff4444' },
+                { name: 'β', lo: 13, hi: 30, color: '#666' },
+                { name: 'γ', lo: 30, hi: 100, color: '#666' },
+            ];
+            for (const b of bands) {
+                const x1 = pad.left + (b.lo / maxFreq) * plotW;
+                const x2 = pad.left + (b.hi / maxFreq) * plotW;
+                specCtx.fillStyle = b.color === '#ff4444' ? 'rgba(255,68,68,0.08)' : 'rgba(255,255,255,0.02)';
+                specCtx.fillRect(x1, pad.top, x2 - x1, plotH);
+                specCtx.fillStyle = b.color;
+                specCtx.font = `${8 * dpr}px sans-serif`;
+                specCtx.textAlign = 'center';
+                specCtx.textBaseline = 'top';
+                specCtx.fillText(b.name, (x1 + x2) / 2, pad.top + 1 * dpr);
+            }
+
+            // Draw spectrum line
+            specCtx.strokeStyle = '#ffffff';
+            specCtx.lineWidth = 1.5 * dpr;
+            specCtx.beginPath();
+            let started = false;
+
+            for (let i = 1; i < nBins; i++) {
+                const freq = freqs[i];
+                if (freq > maxFreq) break;
+                const x = pad.left + (freq / maxFreq) * plotW;
+                const db = Math.max(dbMin, Math.min(dbMax, power[i]));
+                const y = pad.top + ((dbMax - db) / (dbMax - dbMin)) * plotH;
+
+                if (!started) { specCtx.moveTo(x, y); started = true; }
+                else specCtx.lineTo(x, y);
+            }
+            specCtx.stroke();
+
+            // Border
+            specCtx.strokeStyle = '#333';
+            specCtx.lineWidth = 1;
+            specCtx.strokeRect(pad.left, pad.top, plotW, plotH);
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
