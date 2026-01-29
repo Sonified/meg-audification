@@ -14,7 +14,6 @@ build/
 
 # MEG Data (large files)
 data/raw/
-data/processed/
 *.fif
 *.fif.gz
 
