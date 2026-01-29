@@ -218,7 +218,137 @@
         .tab-content { display: none; padding: 16px; background: #2a2a4a; border-radius: 0 4px 4px 4px; margin-bottom: 16px; }
         .tab-content.active { display: block; }
         */
+        /* Face tracker overlay */
+        #trackingToolbar {
+            position: fixed; bottom: 16px; left: 16px; z-index: 9998;
+            display: flex; flex-direction: row; align-items: flex-end; gap: 12px;
+        }
+        #faceTrackerOverlay {
+            position: relative;
+            background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        #faceTrackerOverlay video {
+            width: 240px; height: 180px; object-fit: cover; display: block;
+            border-radius: 12px 12px 0 0; transform: scaleX(-1);
+        }
+        #faceTrackerOverlay canvas {
+            position: absolute; top: 0; left: 0; width: 240px; height: 180px;
+            pointer-events: none; transform: scaleX(-1);
+        }
+        #eyeStatusBar {
+            width: 100%; padding: 6px 12px; display: flex; justify-content: space-between;
+            align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+            color: #e0e0e0; background: rgba(0,0,0,0.3);
+        }
+        #eyeStatusBar .eye-indicator {
+            display: flex; align-items: center; gap: 6px;
+        }
+        #eyeStatusBar .eye-dot {
+            width: 8px; height: 8px; border-radius: 50%; transition: background 0.15s;
+        }
+        #eyeStatusBar .eye-dot.open { background: #5FB3B3; }
+        #eyeStatusBar .eye-dot.closed { background: #e05577; }
+        #faceTrackerToggle {
+            background: #2a2a4a; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px; padding: 8px 14px; color: #e0e0e0;
+            font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer;
+        }
+        #faceTrackerToggle:hover { background: #3a3a5a; }
+        /* Eye Detection Control Panel */
+        #eyeDetectionPanel {
+            background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px; padding: 14px 10px; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+            font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #e0e0e0;
+            display: none; min-width: 220px;
+        }
+        #eyeDetectionPanel .edp-title {
+            font-weight: 700; font-size: 13px; margin-bottom: 10px; color: #fff;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #eyeDetectionPanel .edp-toggle {
+            font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.15); background: #2a2a4a; color: #e0e0e0;
+            transition: all 0.15s;
+        }
+        #eyeDetectionPanel .edp-toggle.active {
+            background: #5FB3B3; color: #1a1a2e; border-color: #5FB3B3; font-weight: 700;
+        }
+        #eyeDetectionPanel .edp-row {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        }
+        #eyeDetectionPanel .edp-btn {
+            flex: 1; padding: 6px 8px; border-radius: 4px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.15); background: #2a2a4a; color: #e0e0e0;
+            font-family: 'IBM Plex Mono', monospace; font-size: 11px; transition: all 0.15s;
+            text-align: center;
+        }
+        #eyeDetectionPanel .edp-btn:hover { background: #3a3a5a; }
+        #eyeDetectionPanel .edp-btn.set { border-color: #5FB3B3; }
+        #eyeDetectionPanel .edp-pos {
+            font-size: 10px; color: rgba(224,224,224,0.5); margin-top: -4px; margin-bottom: 8px;
+        }
+        #eyeDetectionPanel .edp-play {
+            width: 100%; padding: 8px; border-radius: 6px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.15); background: #2a2a4a; color: #e0e0e0;
+            font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+            transition: all 0.15s;
+        }
+        #eyeDetectionPanel .edp-play:hover { background: #3a3a5a; }
+        #eyeDetectionPanel .edp-play.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; border-color: transparent;
+        }
+        /* Hand Tracking / Speed Control Panel */
+        #handSpeedPanel {
+            background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px; padding: 8px 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+            font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #e0e0e0;
+            display: none; min-width: 180px;
+        }
+        #handSpeedPanel .hsp-title {
+            font-weight: 700; font-size: 13px; margin-bottom: 6px; color: #fff;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #handSpeedPanel .hsp-toggle {
+            font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.15); background: #2a2a4a; color: #e0e0e0;
+            transition: all 0.15s;
+        }
+        #handSpeedPanel .hsp-toggle.active {
+            background: #5FB3B3; color: #1a1a2e; border-color: #5FB3B3; font-weight: 700;
+        }
+        #handSpeedPanel .hsp-meter {
+            height: 6px; background: #2a2a4a; border-radius: 3px; margin: 4px 0;
+            overflow: hidden;
+        }
+        #handSpeedPanel .hsp-meter-fill {
+            height: 100%; background: linear-gradient(90deg, #667eea, #5FB3B3);
+            border-radius: 3px; transition: width 0.1s;
+        }
+        #handSpeedPanel .hsp-info {
+            font-size: 11px; color: rgba(224,224,224,0.5);
+            display: flex; justify-content: space-between;
+        }
+        #handSpeedPanel .hsp-speed {
+            font-size: 18px; font-weight: 700; text-align: center;
+            color: #5FB3B3; margin: 2px 0;
+        }
+        #handSpeedPanel .hsp-pinch-indicator {
+            text-align: center; font-size: 11px; margin-top: 2px;
+            color: rgba(224,224,224,0.4); transition: color 0.15s;
+        }
+        #handSpeedPanel .hsp-pinch-indicator.active {
+            color: #e8a838; font-weight: 600;
+        }
     </style>
+    <script type="module">
+        import vision from "./lib/mediapipe/vision_bundle.js";
+        window.FaceLandmarker = vision.FaceLandmarker;
+        window.HandLandmarker = vision.HandLandmarker;
+        window.FilesetResolver = vision.FilesetResolver;
+    </script>
 </head>
 <body>
     <h1>MEG Audification Explorer</h1>
@@ -292,8 +422,9 @@
     </div>
 
     <div class="data-display">
-        <div class="sensor-map">
+        <div class="sensor-map" style="position: relative;">
             <img id="sensorImg" src="sensor_layout.jpeg" alt="Neuromag MEG sensor layout">
+            <div id="sensorClickLeftOccipital" style="position: absolute; left: 0; bottom: 0; width: 50%; height: 33%; cursor: pointer;" title="Load Left Occipital"></div>
         </div>
         <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0;">
             <div class="waveform-panel">
@@ -313,7 +444,68 @@
             <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
                    style="flex: 1; max-width: 300px;">
         </div>
+        <!-- Reverb controls -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-left: 16px;">
+            <button id="reverbToggle" style="padding: 4px 10px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #888; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer;">Reverb</button>
+            <select id="reverbIRSelect" style="padding: 4px 8px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #e0e0e0; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
+            </select>
+            <span style="color: rgba(224,224,224,0.5); font-size: 11px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">Wet: <span id="reverbWetValue">30</span>%</span>
+            <input type="range" id="reverbWetSlider" min="0" max="100" value="30" step="1"
+                   style="width: 80px;">
+        </div>
         <!-- Filter controls now live on the spectrum plot -->
+    </div>
+
+    <!-- Bottom-left tracking toolbar -->
+    <div id="trackingToolbar">
+        <button id="faceTrackerToggle">Live Tracking (T)</button>
+
+        <!-- Face Tracker Overlay -->
+        <div id="faceTrackerOverlay" style="display: none;">
+            <video id="faceVideo" autoplay playsinline></video>
+            <canvas id="faceLandmarkCanvas"></canvas>
+            <div id="eyeStatusBar">
+                <div class="eye-indicator">
+                    <span>L</span><span class="eye-dot" id="leftEyeDot"></span>
+                    <span style="margin-left: 8px;">R</span><span class="eye-dot" id="rightEyeDot"></span>
+                </div>
+                <span id="eyeEarValue">EAR: --</span>
+                <span id="blinkCount">Blinks: 0</span>
+            </div>
+        </div>
+
+        <!-- Eye Detection Control Panel -->
+        <div id="eyeDetectionPanel">
+            <div class="edp-title">
+                <span>Eye Detection (E)</span>
+                <button class="edp-toggle" id="edpToggle">Off</button>
+            </div>
+            <div class="edp-row">
+                <button class="edp-btn" id="edpSetOpen">Set Open (O)</button>
+                <button class="edp-btn" id="edpSetClosed" style="flex: 1.3;">Set Closed (C)</button>
+            </div>
+            <div class="edp-pos">
+                <span id="edpOpenPos">Open: not set</span> &nbsp;|&nbsp; <span id="edpClosedPos">Closed: not set</span>
+            </div>
+            <button class="edp-play" id="edpPlay">Play</button>
+        </div>
+
+        <!-- Hand Speed Control Panel -->
+        <div id="handSpeedPanel">
+            <div class="hsp-title">
+                <span>Pinch Speed</span>
+                <button class="hsp-toggle" id="hspToggle">Off</button>
+            </div>
+            <div class="hsp-speed" id="hspSpeedValue">1.00x</div>
+            <div class="hsp-meter">
+                <div class="hsp-meter-fill" id="hspMeterFill" style="width: 25%;"></div>
+            </div>
+            <div class="hsp-info">
+                <span>0.25x</span>
+                <span>4.00x</span>
+            </div>
+            <div class="hsp-pinch-indicator" id="hspPinchStatus">Pinch to control</div>
+        </div>
     </div>
 
     <script>
@@ -370,6 +562,21 @@
         let lowPassEnabled = false;
         let lowPassFreq = 40.0;  // Hz
         let lowPassFilterNode = null;
+
+        // Convolution reverb state
+        let reverbEnabled = false;
+        let reverbWetDry = 0.3;          // 0 = fully dry, 1 = fully wet
+        let reverbIRBuffer = null;        // decoded AudioBuffer of the IR
+        let reverbIRName = '';            // current IR filename
+        const REVERB_IR_FILES = [
+            { file: 'nice_drum_room.wav',            label: 'Drum Room' },
+            { file: 'bottle_hall.wav',               label: 'Bottle Hall' },
+            { file: 'french_18th_century_salon.wav',  label: '18th C. Salon' },
+            { file: 'scala_milan_opera_hall.wav',     label: 'Opera Hall' },
+            { file: 'large_wide_echo_hall.wav',      label: 'Wide Echo Hall' },
+            { file: 'st_nicolaes_church.wav',        label: 'Church' },
+            { file: 'deep_space.wav',                label: 'Deep Space' },
+        ];
 
         // Scrub audio (Paul stretch) state
         let scrubWorkletNode = null;
@@ -578,6 +785,7 @@
             document.getElementById('cacheStatus').textContent = `All ${totalChunks} chunks loaded!`;
             drawMinimap(); // Redraw minimap with all data
             updateScrubBuffer(); // Refresh scrub audio with complete data
+            buildMonoBuffer(); // Pre-build audio buffer so first play is instant
         }
 
         // Get data for a time range (from cache or fetch)
@@ -701,8 +909,11 @@
                 const offsetStart = Math.floor((sliceStart - chunkStart) * regionData.sample_rate) * regionData.n_channels;
                 const offsetEnd = Math.floor((sliceEnd - chunkStart) * regionData.sample_rate) * regionData.n_channels;
                 const src = data.subarray(offsetStart, Math.min(offsetEnd, data.length));
-                _cacheSyncBuf.set(src, writeOffset);
-                writeOffset += src.length;
+                const remaining = _cacheSyncBuf.length - writeOffset;
+                if (remaining <= 0) break;
+                const safe = remaining >= src.length ? src : src.subarray(0, remaining);
+                _cacheSyncBuf.set(safe, writeOffset);
+                writeOffset += safe.length;
             }
             return _cacheSyncBuf.subarray(0, writeOffset);
         }
@@ -751,16 +962,26 @@
 
         // ===== LOAD REGION =====
 
+        let _loadedRegionKey = null;
+
         async function loadRegion() {
             loadBtn.classList.remove('pulse');
             const regionKey = regionSelect.value;
             if (!regionKey) return;
+
+            // Skip reload if this region is already loaded
+            if (regionKey === _loadedRegionKey) return;
+
+            // Pre-create AudioContext on user gesture (avoids lag on first play)
+            ensureAudioContext();
 
             const region = metadata.regions[regionKey];
             status.textContent = `Loading ${region.description}...`;
             loadBtn.disabled = true;
 
             // Reset cache
+            _loadedRegionKey = regionKey;
+            invalidateMonoCache();
             chunkCache = new Map();
             loadingChunks = new Set();
             isUploadedData = false;
@@ -1142,8 +1363,22 @@
 
         // ===== MONO BUFFER =====
         // Build a normalized mono mix from cached chunks + selected channels
+        // Cached mono buffer — rebuilt only when channels or chunks change
+        let _monoCache = null;
+        let _monoCacheKey = '';  // tracks channel selection + chunk count
+
+        function _monoKey() {
+            return [...selectedChannels].sort().join(',') + '|' + chunkCache.size;
+        }
+
+        function invalidateMonoCache() { _monoCacheKey = ''; _monoCache = null; }
+
         function buildMonoBuffer() {
             if (!regionData || selectedChannels.size === 0) return null;
+
+            // Return cached buffer if channels and chunks haven't changed
+            const key = _monoKey();
+            if (_monoCache && _monoCacheKey === key) return _monoCache;
 
             const totalDuration = regionData.duration_seconds;
             const totalSamples = Math.floor(totalDuration * regionData.sample_rate);
@@ -1188,6 +1423,8 @@
                 }
             }
 
+            _monoCache = mono;
+            _monoCacheKey = key;
             return mono;
         }
 
@@ -1198,6 +1435,42 @@
                 audioContext = new AudioContext();
             }
             return audioContext;
+        }
+
+        async function loadIR(filename) {
+            const ctx = await ensureAudioContext();
+            const resp = await fetch('ir/' + filename);
+            const arrayBuf = await resp.arrayBuffer();
+            reverbIRBuffer = await ctx.decodeAudioData(arrayBuf);
+            reverbIRName = filename;
+            console.log(`Loaded IR: ${filename} (${reverbIRBuffer.numberOfChannels}ch, ${reverbIRBuffer.duration.toFixed(2)}s)`);
+        }
+
+        // Build a reverb send: splits signal into dry + wet (convolver) and merges
+        // Returns { input, output } nodes to splice into chain
+        function createReverbSend(ctx) {
+            const input = ctx.createGain();     // entry point
+            const dryGain = ctx.createGain();
+            const wetGain = ctx.createGain();
+            const convolver = ctx.createConvolver();
+            const output = ctx.createGain();    // exit point
+
+            dryGain.gain.value = 1 - reverbWetDry;
+            wetGain.gain.value = reverbWetDry;
+
+            if (reverbIRBuffer) {
+                convolver.buffer = reverbIRBuffer;
+            }
+
+            // Parallel routing: input → dry → output
+            //                    input → convolver → wet → output
+            input.connect(dryGain);
+            dryGain.connect(output);
+            input.connect(convolver);
+            convolver.connect(wetGain);
+            wetGain.connect(output);
+
+            return { input, output, dryGain, wetGain, convolver };
         }
 
         async function initScrubWorklet() {
@@ -1228,8 +1501,19 @@
 
             scrubWorkletNode.connect(scrubHPFilter);
             scrubHPFilter.connect(scrubLPFilter);
+
             scrubLPFilter.connect(scrubGainNode);
-            scrubGainNode.connect(ctx.destination);
+
+            // Reverb AFTER gain so the tail rings out naturally through fades
+            if (reverbEnabled && reverbIRBuffer) {
+                const scrubReverb = createReverbSend(ctx);
+                scrubGainNode.connect(scrubReverb.input);
+                scrubReverb.output.connect(ctx.destination);
+                window._scrubReverbSend = scrubReverb;
+            } else {
+                scrubGainNode.connect(ctx.destination);
+                window._scrubReverbSend = null;
+            }
 
             scrubWorkletReady = true;
         }
@@ -1262,7 +1546,7 @@
             const ctx = audioContext;
             scrubGainNode.gain.cancelScheduledValues(ctx.currentTime);
             scrubGainNode.gain.setValueAtTime(scrubGainNode.gain.value, ctx.currentTime);
-            scrubGainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05);
+            scrubGainNode.gain.linearRampToValueAtTime(2, ctx.currentTime + 0.05);
         }
 
         function seekScrubTo(megTime) {
@@ -1348,8 +1632,17 @@
 
             audioSource.connect(highPassFilterNode);
             highPassFilterNode.connect(lowPassFilterNode);
+
             lowPassFilterNode.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+
+            // Reverb AFTER gain so the tail rings out naturally through fades
+            if (reverbEnabled && reverbIRBuffer) {
+                const reverb = createReverbSend(audioContext);
+                gainNode.connect(reverb.input);
+                reverb.output.connect(audioContext.destination);
+            } else {
+                gainNode.connect(audioContext.destination);
+            }
 
             // Start from current playhead position (or beginning)
             const startMegTime = currentPlayheadTime !== null ? currentPlayheadTime : 0;
@@ -1640,6 +1933,13 @@
         // ===== EVENT LISTENERS =====
 
         loadBtn.addEventListener('click', loadRegion);
+
+        // Sensor map click zones
+        document.getElementById('sensorClickLeftOccipital').addEventListener('click', () => {
+            regionSelect.value = 'left_occipital';
+            loadRegion();
+        });
+
         playPauseBtn.addEventListener('click', (e) => {
             e.target.blur();
             togglePlayPause();
@@ -1662,6 +1962,22 @@
                 isLooping = !isLooping;
                 loopBtn.textContent = isLooping ? '🔁 Loop ON' : '🔁 Loop';
                 loopBtn.classList.toggle('loop-active', isLooping);
+            } else if (e.key === 't' || e.key === 'T') {
+                if (e.target.matches('input, select, textarea')) return;
+                const ftToggle = document.getElementById('faceTrackerToggle');
+                if (ftToggle && !ftToggle.disabled) ftToggle.click();
+            } else if (e.key === 'e' || e.key === 'E') {
+                if (e.target.matches('input, select, textarea')) return;
+                const edpToggle = document.getElementById('edpToggle');
+                if (edpToggle) edpToggle.click();
+            } else if (e.key === 'o' || e.key === 'O') {
+                if (e.target.matches('input, select, textarea')) return;
+                const btn = document.getElementById('edpSetOpen');
+                if (btn) btn.click();
+            } else if (e.key === 'c' || e.key === 'C') {
+                if (e.target.matches('input, select, textarea')) return;
+                const btn = document.getElementById('edpSetClosed');
+                if (btn) btn.click();
             }
         });
 
@@ -1772,6 +2088,9 @@
             if (isPlaying) pauseAudio();
             minimapScrub(e);
             // Start scrub audio at this position
+            if (scrubWorkletNode) {
+                scrubWorkletNode.port.postMessage({ type: 'set-loop-at-end', data: { enabled: true } });
+            }
             startScrubAt(currentPlayheadTime);
         });
 
@@ -1784,6 +2103,9 @@
 
         document.addEventListener('mouseup', () => {
             if (minimapDragging) {
+                if (scrubWorkletNode) {
+                    scrubWorkletNode.port.postMessage({ type: 'set-loop-at-end', data: { enabled: false } });
+                }
                 stopScrub();
                 if (minimapWasPlaying) {
                     playAudio();
@@ -1839,6 +2161,59 @@
                 await drawTimeRange(currentViewStart, VIEW_WINDOW);
                 drawPlayhead();
                 drawMinimap();
+            }
+        });
+
+        // ===== REVERB CONTROLS =====
+        const reverbToggleBtn = document.getElementById('reverbToggle');
+        const reverbIRSelect  = document.getElementById('reverbIRSelect');
+        const reverbWetSlider = document.getElementById('reverbWetSlider');
+        const reverbWetValueEl = document.getElementById('reverbWetValue');
+
+        // Populate IR select dropdown
+        REVERB_IR_FILES.forEach((ir, i) => {
+            const opt = document.createElement('option');
+            opt.value = ir.file;
+            opt.textContent = ir.label;
+            reverbIRSelect.appendChild(opt);
+        });
+
+        reverbToggleBtn.addEventListener('click', async () => {
+            reverbEnabled = !reverbEnabled;
+            reverbToggleBtn.style.background = reverbEnabled ? '#5FB3B3' : '#2a2a4a';
+            reverbToggleBtn.style.color = reverbEnabled ? '#1a1a2e' : '#888';
+            reverbToggleBtn.style.fontWeight = reverbEnabled ? '700' : '400';
+            if (reverbEnabled && !reverbIRBuffer) {
+                // Load the default IR on first enable
+                reverbToggleBtn.textContent = 'Loading...';
+                await loadIR(reverbIRSelect.value);
+                reverbToggleBtn.textContent = 'Reverb';
+            }
+            // Rebuild scrub chain to include/exclude reverb
+            if (scrubWorkletReady) {
+                await initScrubWorklet();
+                updateScrubBuffer();
+            }
+        });
+
+        reverbIRSelect.addEventListener('change', async () => {
+            if (reverbEnabled) {
+                await loadIR(reverbIRSelect.value);
+                // Rebuild scrub chain with new IR
+                if (scrubWorkletReady) {
+                    await initScrubWorklet();
+                    updateScrubBuffer();
+                }
+            }
+        });
+
+        reverbWetSlider.addEventListener('input', () => {
+            reverbWetDry = parseInt(reverbWetSlider.value) / 100;
+            reverbWetValueEl.textContent = reverbWetSlider.value;
+            // Update live scrub reverb send if it exists
+            if (window._scrubReverbSend) {
+                window._scrubReverbSend.dryGain.gain.value = 1 - reverbWetDry;
+                window._scrubReverbSend.wetGain.gain.value = reverbWetDry;
             }
         });
 
@@ -2133,15 +2508,15 @@
             const trackH = handleTrackH;
             const triSize = 6 * dpr;  // triangle half-width
             const activeColor = '#4db8ff';       // hot blue
-            const dimColor = 'rgba(77,184,255,0.25)';
+            const dimColor = 'rgba(77,184,255,0.45)';
 
             // --- Shaded rejection regions on the plot area ---
             if (highPassEnabled) {
                 const hpX = freqToX(highPassFreq);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
                 ctx.fillRect(pad.left, pad.top, hpX - pad.left, plotH);
-                ctx.strokeStyle = 'rgba(77,184,255,0.5)';
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = 'rgba(77,184,255,0.8)';
+                ctx.lineWidth = 1.5 * dpr;
                 ctx.setLineDash([4 * dpr, 3 * dpr]);
                 ctx.beginPath();
                 ctx.moveTo(hpX, pad.top);
@@ -2154,8 +2529,8 @@
                 const lpX = freqToX(lowPassFreq);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
                 ctx.fillRect(lpX, pad.top, pad.left + plotW - lpX, plotH);
-                ctx.strokeStyle = 'rgba(77,184,255,0.5)';
-                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = 'rgba(77,184,255,0.8)';
+                ctx.lineWidth = 1.5 * dpr;
                 ctx.setLineDash([4 * dpr, 3 * dpr]);
                 ctx.beginPath();
                 ctx.moveTo(lpX, pad.top);
@@ -2168,49 +2543,71 @@
             ctx.fillStyle = 'rgba(255,255,255,0.03)';
             ctx.fillRect(pad.left, trackY, plotW, trackH);
 
+            // Vertical positioning: center triangle+text in track
+            const triTopY = trackY + trackH / 2 - triSize * 0.5;
+            const labelY = trackY + trackH / 2 + 1 * dpr;
+
             // --- HP handle: downward triangle ---
             const hpX = freqToX(highPassFreq);
             const hpColor = highPassEnabled ? activeColor : dimColor;
             ctx.fillStyle = hpColor;
             ctx.beginPath();
-            ctx.moveTo(hpX - triSize, trackY + 2 * dpr);
-            ctx.lineTo(hpX + triSize, trackY + 2 * dpr);
-            ctx.lineTo(hpX, trackY + 2 * dpr + triSize * 1.5);
+            ctx.moveTo(hpX - triSize, triTopY);
+            ctx.lineTo(hpX + triSize, triTopY);
+            ctx.lineTo(hpX, triTopY + triSize * 1.5);
             ctx.closePath();
             ctx.fill();
 
-            // HP label
+            // HP label (bold prefix, regular number)
             ctx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
             ctx.fillStyle = hpColor;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`HP ${highPassFreq.toFixed(1)}`, hpX + triSize + 3 * dpr, trackY + trackH / 2);
+            const hpPrefix = 'HP ';
+            const hpNum = highPassFreq.toFixed(1);
+            const hpPrefixW = ctx.measureText(hpPrefix).width;
+            const hpLabelX = hpX + triSize + 3 * dpr;
+            ctx.fillText(hpPrefix, hpLabelX, labelY);
+            ctx.font = `${11 * dpr}px 'IBM Plex Mono', monospace`;
+            ctx.fillText(hpNum, hpLabelX + hpPrefixW, labelY);
 
             // --- LP handle: downward triangle ---
             const lpX = freqToX(lowPassFreq);
             const lpColor = lowPassEnabled ? activeColor : dimColor;
             ctx.fillStyle = lpColor;
             ctx.beginPath();
-            ctx.moveTo(lpX - triSize, trackY + 2 * dpr);
-            ctx.lineTo(lpX + triSize, trackY + 2 * dpr);
-            ctx.lineTo(lpX, trackY + 2 * dpr + triSize * 1.5);
+            ctx.moveTo(lpX - triSize, triTopY);
+            ctx.lineTo(lpX + triSize, triTopY);
+            ctx.lineTo(lpX, triTopY + triSize * 1.5);
             ctx.closePath();
             ctx.fill();
 
             // LP label — flip to left side if too close to right edge
             ctx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
             ctx.fillStyle = lpColor;
-            const lpLabelText = `LP ${lowPassFreq.toFixed(1)}`;
-            const lpLabelW = ctx.measureText(lpLabelText).width;
-            const lpRightEdge = lpX + triSize + 3 * dpr + lpLabelW;
+            const lpPrefix = 'LP ';
+            const lpNum = lowPassFreq.toFixed(1);
+            const lpPrefixW = ctx.measureText(lpPrefix).width;
+            ctx.font = `${11 * dpr}px 'IBM Plex Mono', monospace`;
+            const lpNumW = ctx.measureText(lpNum).width;
+            const lpFullW = lpPrefixW + lpNumW;
+            const lpRightEdge = lpX + triSize + 3 * dpr + lpFullW;
             if (lpRightEdge > pad.left + plotW) {
-                ctx.textAlign = 'right';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(lpLabelText, lpX - triSize - 3 * dpr, trackY + trackH / 2);
-            } else {
+                const lpLabelX = lpX - triSize - 3 * dpr - lpFullW;
+                ctx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(lpLabelText, lpX + triSize + 3 * dpr, trackY + trackH / 2);
+                ctx.fillText(lpPrefix, lpLabelX, labelY);
+                ctx.font = `${11 * dpr}px 'IBM Plex Mono', monospace`;
+                ctx.fillText(lpNum, lpLabelX + lpPrefixW, labelY);
+            } else {
+                const lpLabelX = lpX + triSize + 3 * dpr;
+                ctx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(lpPrefix, lpLabelX, labelY);
+                ctx.font = `${11 * dpr}px 'IBM Plex Mono', monospace`;
+                ctx.fillText(lpNum, lpLabelX + lpPrefixW, labelY);
             }
         }
 
@@ -2259,7 +2656,7 @@
             specCtx.strokeStyle = 'rgba(255,255,255,0.12)';
             specCtx.lineWidth = 1;
             specCtx.font = `${11 * dpr}px 'IBM Plex Mono', monospace`;
-            specCtx.fillStyle = 'rgba(224,224,224,0.4)';
+            specCtx.fillStyle = 'rgba(224,224,224,0.6)';
 
             // Frequency axis labels (log-spaced)
             const freqTicks = [1, 5, 10, 20, 50, 100];
@@ -2298,16 +2695,16 @@
 
             // "Hz" label
             specCtx.textAlign = 'center';
-            specCtx.fillStyle = 'rgba(224,224,224,0.3)';
+            specCtx.fillStyle = 'rgba(224,224,224,0.5)';
             specCtx.fillText('Hz', pad.left + plotW / 2, h - 7 * dpr);
 
             // Band markers (alpha, beta, etc.)
             const bands = [
-                { name: 'δ', lo: 0.5, hi: 4, color: 'rgba(224,224,224,0.5)' },
-                { name: 'θ', lo: 4, hi: 8, color: 'rgba(224,224,224,0.5)' },
+                { name: 'δ', lo: 0.5, hi: 4, color: 'rgba(224,224,224,0.7)' },
+                { name: 'θ', lo: 4, hi: 8, color: 'rgba(224,224,224,0.7)' },
                 { name: 'α', lo: 8, hi: 13, color: '#dd6666' },
-                { name: 'β', lo: 13, hi: 30, color: 'rgba(224,224,224,0.5)' },
-                { name: 'γ', lo: 30, hi: 100, color: 'rgba(224,224,224,0.5)' },
+                { name: 'β', lo: 13, hi: 30, color: 'rgba(224,224,224,0.7)' },
+                { name: 'γ', lo: 30, hi: 100, color: 'rgba(224,224,224,0.7)' },
             ];
             for (const b of bands) {
                 const x1 = freqToX(b.lo);
@@ -2519,13 +2916,40 @@
 
             const hpCssX = s.freqToX(highPassFreq) / s.dpr;
             const lpCssX = s.freqToX(lowPassFreq) / s.dpr;
-            const hitRadius = 14;
+            const triSize = 6;  // CSS pixels (matches triSize in drawFilterOverlay)
+            const labelPad = 3;
 
-            const hpDist = Math.abs(cssX - hpCssX);
-            const lpDist = Math.abs(cssX - lpCssX);
+            // Measure label widths using the spectrum canvas context
+            specCtx.font = `bold ${11 * s.dpr}px 'IBM Plex Mono', monospace`;
+            const hpLabelW = specCtx.measureText(`HP ${highPassFreq.toFixed(1)}`).width / s.dpr;
+            const lpLabelW = specCtx.measureText(`LP ${lowPassFreq.toFixed(1)}`).width / s.dpr;
 
-            if (hpDist <= hitRadius && hpDist <= lpDist) return 'hp';
-            if (lpDist <= hitRadius) return 'lp';
+            // HP hit area: triangle + label to the right
+            const hpLeft = hpCssX - triSize;
+            const hpRight = hpCssX + triSize + labelPad + hpLabelW;
+            const hpHit = cssX >= hpLeft - 4 && cssX <= hpRight + 4;
+
+            // LP hit area: triangle + label (right or left depending on flip)
+            const lpLabelRight = lpCssX + triSize + labelPad + lpLabelW;
+            const lpFlipped = lpLabelRight > (s.pad.left + s.plotW) / s.dpr;
+            let lpLeft, lpRight;
+            if (lpFlipped) {
+                lpLeft = lpCssX - triSize - labelPad - lpLabelW;
+                lpRight = lpCssX + triSize;
+            } else {
+                lpLeft = lpCssX - triSize;
+                lpRight = lpCssX + triSize + labelPad + lpLabelW;
+            }
+            const lpHit = cssX >= lpLeft - 4 && cssX <= lpRight + 4;
+
+            if (hpHit && lpHit) {
+                // Both overlap — pick closer to center
+                const hpCenter = (hpLeft + hpRight) / 2;
+                const lpCenter = (lpLeft + lpRight) / 2;
+                return Math.abs(cssX - hpCenter) <= Math.abs(cssX - lpCenter) ? 'hp' : 'lp';
+            }
+            if (hpHit) return 'hp';
+            if (lpHit) return 'lp';
             return null;
         }
 
@@ -2685,6 +3109,590 @@
 
         // Draw empty spectrum axes on load
         drawSpectrum(null, 0, 0);
+
+        // Resize handler — update canvas dimensions and redraw when window changes
+        let _resizeRAF = 0;
+        window.addEventListener('resize', () => {
+            if (_resizeRAF) return;
+            _resizeRAF = requestAnimationFrame(() => {
+                _resizeRAF = 0;
+                if (!regionData) return;
+
+                const dpr = window.devicePixelRatio;
+
+                // Resize main waveform canvas
+                const newW = canvas.offsetWidth * dpr;
+                if (canvas.width !== Math.floor(newW)) {
+                    canvas.width = newW;
+                    // height stays the same (based on channel count, not window)
+                }
+
+                // Invalidate minimap cache (width changed)
+                minimapCacheDirty = true;
+                _spectrumBaseCanvas = null; // force spectrum base rebuild
+
+                // Redraw everything
+                if (!isPlaying) {
+                    const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, regionData.duration_seconds);
+                    const data = getDataFromCacheSync(currentViewStart, viewEnd);
+                    if (data && data.length > 0) {
+                        const filtered = applyFilters(data, regionData.n_channels, regionData.sample_rate);
+                        drawTimeRangeSync(currentViewStart, VIEW_WINDOW, filtered, true);
+                        drawPlayhead();
+                    }
+                    if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+                    drawMinimap();
+                }
+                // If playing, animation loop picks up new dimensions automatically
+            });
+        });
+
+        // ============================================================
+        // Face Tracker — MediaPipe Face Landmarker + Eye Aspect Ratio
+        // ============================================================
+        (function setupFaceTracker() {
+            const overlay = document.getElementById('faceTrackerOverlay');
+            const toggle  = document.getElementById('faceTrackerToggle');
+            const video   = document.getElementById('faceVideo');
+            const lmkCanvas = document.getElementById('faceLandmarkCanvas');
+            const lmkCtx = lmkCanvas.getContext('2d');
+            const leftDot  = document.getElementById('leftEyeDot');
+            const rightDot = document.getElementById('rightEyeDot');
+            const earSpan  = document.getElementById('eyeEarValue');
+            const blinkSpan = document.getElementById('blinkCount');
+
+            // Eye Aspect Ratio landmark indices (MediaPipe 478 mesh)
+            // Left eye: top(159), bottom(145), outer(33), inner(133), top2(158), bottom2(153)
+            // Right eye: top(386), bottom(374), outer(362), inner(263), top2(385), bottom2(380)
+            const LEFT_EYE  = { top: [159, 158], bottom: [145, 153], outer: 33,  inner: 133 };
+            const RIGHT_EYE = { top: [386, 385], bottom: [374, 380], outer: 362, inner: 263 };
+
+            const EAR_THRESHOLD = 0.21;  // below this = eye closed
+            const BLINK_CONSEC_FRAMES = 2;
+
+            let faceLandmarker = null;
+            let handLandmarker = null;
+            let running = false;
+            let blinkCounter = 0;
+            let leftClosedFrames = 0;
+            let rightClosedFrames = 0;
+            let leftWasClosed = false;
+            let rightWasClosed = false;
+            let animFrameId = null;
+
+            // Expose eye state globally for other code to use
+            window.faceTracker = {
+                leftEyeOpen: true,
+                rightEyeOpen: true,
+                leftEAR: 0,
+                rightEAR: 0,
+                blinkCount: 0,
+                faceDetected: false
+            };
+
+            function dist(a, b) {
+                return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + ((a.z || 0) - (b.z || 0)) ** 2);
+            }
+
+            function computeEAR(landmarks, eye) {
+                const v1 = dist(landmarks[eye.top[0]], landmarks[eye.bottom[0]]);
+                const v2 = dist(landmarks[eye.top[1]], landmarks[eye.bottom[1]]);
+                const h  = dist(landmarks[eye.outer],  landmarks[eye.inner]);
+                return (v1 + v2) / (2.0 * h);
+            }
+
+            async function initFaceLandmarker() {
+                const { FaceLandmarker, HandLandmarker, FilesetResolver } = window;
+                if (!FaceLandmarker || !FilesetResolver) {
+                    console.error('MediaPipe Vision bundle not loaded');
+                    return false;
+                }
+                const filesetResolver = await FilesetResolver.forVisionTasks(
+                    "lib/mediapipe/wasm"
+                );
+                faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+                    baseOptions: {
+                        modelAssetPath: "lib/mediapipe/face_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    outputFaceBlendshapes: false,
+                    runningMode: "VIDEO",
+                    numFaces: 1
+                });
+                if (HandLandmarker) {
+                    handLandmarker = await HandLandmarker.createFromOptions(filesetResolver, {
+                        baseOptions: {
+                            modelAssetPath: "lib/mediapipe/hand_landmarker.task",
+                            delegate: "GPU"
+                        },
+                        runningMode: "VIDEO",
+                        numHands: 1
+                    });
+                }
+                return true;
+            }
+
+            async function startCamera() {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 320, height: 240, facingMode: "user" }
+                });
+                video.srcObject = stream;
+                await new Promise(r => video.onloadedmetadata = r);
+                video.play();
+                lmkCanvas.width = video.videoWidth;
+                lmkCanvas.height = video.videoHeight;
+            }
+
+            function drawLandmarks(landmarks) {
+                lmkCtx.clearRect(0, 0, lmkCanvas.width, lmkCanvas.height);
+                // Draw eye contours
+                const leftContour  = [33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246];
+                const rightContour = [362,382,381,380,374,373,390,249,263,466,388,387,386,385,384,398];
+
+                lmkCtx.strokeStyle = '#5FB3B3';
+                lmkCtx.lineWidth = 1.5;
+                for (const contour of [leftContour, rightContour]) {
+                    lmkCtx.beginPath();
+                    for (let i = 0; i < contour.length; i++) {
+                        const p = landmarks[contour[i]];
+                        const x = p.x * lmkCanvas.width;
+                        const y = p.y * lmkCanvas.height;
+                        if (i === 0) lmkCtx.moveTo(x, y);
+                        else lmkCtx.lineTo(x, y);
+                    }
+                    lmkCtx.closePath();
+                    lmkCtx.stroke();
+                }
+            }
+
+            function drawHandLandmarks(hand) {
+                // Hand connections (MediaPipe 21-landmark hand model)
+                const connections = [
+                    [0,1],[1,2],[2,3],[3,4],       // thumb
+                    [0,5],[5,6],[6,7],[7,8],       // index
+                    [0,9],[9,10],[10,11],[11,12],   // middle
+                    [0,13],[13,14],[14,15],[15,16], // ring
+                    [0,17],[17,18],[18,19],[19,20], // pinky
+                    [5,9],[9,13],[13,17]            // palm
+                ];
+                const w = lmkCanvas.width, h = lmkCanvas.height;
+                // Draw connections
+                lmkCtx.strokeStyle = '#e8a838';
+                lmkCtx.lineWidth = 1.5;
+                for (const [a, b] of connections) {
+                    lmkCtx.beginPath();
+                    lmkCtx.moveTo(hand[a].x * w, hand[a].y * h);
+                    lmkCtx.lineTo(hand[b].x * w, hand[b].y * h);
+                    lmkCtx.stroke();
+                }
+                // Draw joints
+                lmkCtx.fillStyle = '#e8a838';
+                for (let i = 0; i < 21; i++) {
+                    lmkCtx.beginPath();
+                    lmkCtx.arc(hand[i].x * w, hand[i].y * h, 2.5, 0, Math.PI * 2);
+                    lmkCtx.fill();
+                }
+                // Highlight thumb + index tips for pinch
+                const thumbTip = hand[4], indexTip = hand[8];
+                const pinchDist = dist(thumbTip, indexTip);
+                const isPinch = pinchDist < 0.06;
+                lmkCtx.fillStyle = isPinch ? '#ff6b6b' : '#5FB3B3';
+                for (const p of [thumbTip, indexTip]) {
+                    lmkCtx.beginPath();
+                    lmkCtx.arc(p.x * w, p.y * h, 4, 0, Math.PI * 2);
+                    lmkCtx.fill();
+                }
+                // Draw line between pinch fingers
+                lmkCtx.strokeStyle = isPinch ? '#ff6b6b' : 'rgba(95,179,179,0.4)';
+                lmkCtx.lineWidth = isPinch ? 2 : 1;
+                lmkCtx.beginPath();
+                lmkCtx.moveTo(thumbTip.x * w, thumbTip.y * h);
+                lmkCtx.lineTo(indexTip.x * w, indexTip.y * h);
+                lmkCtx.stroke();
+            }
+
+            function processFrame() {
+                if (!running || !faceLandmarker) return;
+                const now = performance.now();
+                const results = faceLandmarker.detectForVideo(video, now);
+
+                if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                    const lm = results.faceLandmarks[0];
+                    window.faceTracker.faceDetected = true;
+
+                    drawLandmarks(lm);
+
+                    // Swap: model's left = user's right (mirrored video)
+                    const leftEAR  = computeEAR(lm, RIGHT_EYE);
+                    const rightEAR = computeEAR(lm, LEFT_EYE);
+                    const leftOpen  = leftEAR  > EAR_THRESHOLD;
+                    const rightOpen = rightEAR > EAR_THRESHOLD;
+
+                    // Update global state
+                    window.faceTracker.leftEyeOpen  = leftOpen;
+                    window.faceTracker.rightEyeOpen  = rightOpen;
+                    window.faceTracker.leftEAR  = leftEAR;
+                    window.faceTracker.rightEAR = rightEAR;
+
+                    // Blink detection (both eyes)
+                    if (!leftOpen) leftClosedFrames++;
+                    else {
+                        if (leftClosedFrames >= BLINK_CONSEC_FRAMES && !leftWasClosed) {
+                            blinkCounter++;
+                            leftWasClosed = true;
+                        }
+                        leftClosedFrames = 0;
+                        leftWasClosed = false;
+                    }
+                    if (!rightOpen) rightClosedFrames++;
+                    else {
+                        if (rightClosedFrames >= BLINK_CONSEC_FRAMES && !rightWasClosed) {
+                            // only count once per blink (use left eye as primary)
+                        }
+                        rightClosedFrames = 0;
+                        rightWasClosed = false;
+                    }
+                    window.faceTracker.blinkCount = blinkCounter;
+
+                    // Update UI
+                    leftDot.className  = 'eye-dot ' + (leftOpen  ? 'open' : 'closed');
+                    rightDot.className = 'eye-dot ' + (rightOpen ? 'open' : 'closed');
+                    earSpan.textContent = `EAR: ${((leftEAR + rightEAR) / 2).toFixed(2)}`;
+                    blinkSpan.textContent = `Blinks: ${blinkCounter}`;
+                } else {
+                    window.faceTracker.faceDetected = false;
+                    lmkCtx.clearRect(0, 0, lmkCanvas.width, lmkCanvas.height);
+                    leftDot.className  = 'eye-dot';
+                    rightDot.className = 'eye-dot';
+                    earSpan.textContent = 'EAR: --';
+                }
+
+                // Hand landmark detection
+                if (handLandmarker) {
+                    const handResults = handLandmarker.detectForVideo(video, now);
+                    if (handResults.landmarks && handResults.landmarks.length > 0) {
+                        const hand = handResults.landmarks[0];
+                        // Draw hand wireframe on the face canvas
+                        drawHandLandmarks(hand);
+                        // Compute pinch distance (thumb tip=4, index tip=8)
+                        const thumbTip = hand[4];
+                        const indexTip = hand[8];
+                        const pinchDist = dist(thumbTip, indexTip);
+                        const isPinching = pinchDist < 0.06;
+                        // Wrist Y (landmark 0) for vertical position (0=top, 1=bottom)
+                        const handY = hand[0].y;
+                        window.handTracker = window.handTracker || {};
+                        window.handTracker.detected = true;
+                        window.handTracker.pinching = isPinching;
+                        window.handTracker.pinchDist = pinchDist;
+                        window.handTracker.handY = handY;
+                    } else {
+                        if (window.handTracker) {
+                            window.handTracker.detected = false;
+                            window.handTracker.pinching = false;
+                        }
+                    }
+                }
+
+                animFrameId = requestAnimationFrame(processFrame);
+            }
+
+            async function startTracker() {
+                toggle.textContent = 'Starting...';
+                toggle.disabled = true;
+                try {
+                    const ok = await initFaceLandmarker();
+                    if (!ok) { toggle.textContent = 'Live Tracking (failed)'; toggle.disabled = false; return; }
+                    await startCamera();
+                    running = true;
+                    overlay.style.display = '';
+                    document.getElementById('eyeDetectionPanel').style.display = 'block';
+                    toggle.textContent = 'Live Tracking (T)';
+                    toggle.style.background = '#4db8ff';
+                    toggle.style.color = '#1a1a2e';
+                    toggle.disabled = false;
+                    document.getElementById('handSpeedPanel').style.display = 'block';
+                    processFrame();
+                } catch (e) {
+                    console.error('Face tracker error:', e);
+                    toggle.textContent = 'Live Tracking (error)';
+                    toggle.disabled = false;
+                }
+            }
+
+            function stopTracker() {
+                toggle.textContent = 'Stopping...';
+                toggle.disabled = true;
+                running = false;
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(t => t.stop());
+                    video.srcObject = null;
+                }
+                if (faceLandmarker) { faceLandmarker.close(); faceLandmarker = null; }
+                if (handLandmarker) { handLandmarker.close(); handLandmarker = null; }
+                overlay.style.display = 'none';
+                document.getElementById('eyeDetectionPanel').style.display = 'none';
+                toggle.style.background = '';
+                toggle.style.color = '';
+                toggle.textContent = 'Live Tracking (T)';
+                toggle.disabled = false;
+                document.getElementById('handSpeedPanel').style.display = 'none';
+                if (window.eyeDetection) window.eyeDetection.stop();
+                if (window.handSpeed) window.handSpeed.stop();
+            }
+
+            toggle.addEventListener('click', () => {
+                if (running) stopTracker();
+                else startTracker();
+            });
+
+            // Click overlay to minimize/close
+            overlay.addEventListener('dblclick', stopTracker);
+        })();
+
+        // ============================================================
+        // Eye Detection Controller — jump playhead based on eye state
+        // ============================================================
+        (function setupEyeDetection() {
+            const panel     = document.getElementById('eyeDetectionPanel');
+            const toggleBtn = document.getElementById('edpToggle');
+            const setOpenBtn   = document.getElementById('edpSetOpen');
+            const setClosedBtn = document.getElementById('edpSetClosed');
+            const openPosSpan  = document.getElementById('edpOpenPos');
+            const closedPosSpan = document.getElementById('edpClosedPos');
+            const playBtn   = document.getElementById('edpPlay');
+
+            let enabled = false;      // live detection on/off
+            let playing = false;      // play mode active
+            let openPos = null;       // MEG-time in seconds
+            let closedPos = null;     // MEG-time in seconds
+            let lastEyeState = null;  // 'open' | 'closed' | null
+            let loopId = null;
+
+            function fmtPos(sec) {
+                return sec == null ? 'not set' : sec.toFixed(1) + 's';
+            }
+
+            function updateLabels() {
+                openPosSpan.textContent   = 'Open: ' + fmtPos(openPos);
+                closedPosSpan.textContent = 'Closed: ' + fmtPos(closedPos);
+                setOpenBtn.className   = 'edp-btn' + (openPos != null ? ' set' : '');
+                setClosedBtn.className = 'edp-btn' + (closedPos != null ? ' set' : '');
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                enabled = !enabled;
+                toggleBtn.textContent = enabled ? 'On' : 'Off';
+                toggleBtn.className = 'edp-toggle' + (enabled ? ' active' : '');
+                if (!enabled) stopPlaying();
+            });
+
+            setOpenBtn.addEventListener('click', () => {
+                if (currentPlayheadTime != null) {
+                    openPos = currentPlayheadTime;
+                    updateLabels();
+                }
+            });
+
+            setClosedBtn.addEventListener('click', () => {
+                if (currentPlayheadTime != null) {
+                    closedPos = currentPlayheadTime;
+                    updateLabels();
+                }
+            });
+
+            function startPlaying() {
+                if (playing) return;
+                if (openPos == null || closedPos == null) return;
+                playing = true;
+                playBtn.textContent = 'Stop';
+                playBtn.className = 'edp-play active';
+                // Pause normal playback if active
+                if (isPlaying) pauseAudio();
+                lastEyeState = null;
+                detectionLoop();
+            }
+
+            function stopPlaying() {
+                if (!playing) return;
+                playing = false;
+                playBtn.textContent = 'Play';
+                playBtn.className = 'edp-play';
+                if (loopId) { cancelAnimationFrame(loopId); loopId = null; }
+                stopScrub();
+                lastEyeState = null;
+            }
+
+            function detectionLoop() {
+                if (!playing || !enabled) { stopPlaying(); return; }
+
+                const ft = window.faceTracker;
+                if (!ft || !ft.faceDetected) {
+                    loopId = requestAnimationFrame(detectionLoop);
+                    return;
+                }
+
+                // Use average of both eyes
+                const eyesOpen = ft.leftEyeOpen && ft.rightEyeOpen;
+                const newState = eyesOpen ? 'open' : 'closed';
+
+                if (newState !== lastEyeState) {
+                    const targetPos = eyesOpen ? openPos : closedPos;
+                    lastEyeState = newState;
+
+                    // Update playhead position
+                    currentPlayheadTime = targetPos;
+
+                    // Jump scrub audio to new position
+                    if (scrubWorkletReady && scrubWorkletNode) {
+                        if (!scrubGainNode.gain.value) {
+                            // Start scrub if not already playing
+                            startScrubAt(targetPos);
+                        } else {
+                            seekScrubTo(targetPos);
+                        }
+                    } else {
+                        startScrubAt(targetPos);
+                    }
+
+                    // Update viewport to follow playhead
+                    if (typeof regionData !== 'undefined' && regionData) {
+                        const halfW = VIEW_WINDOW / 2;
+                        const dur = regionData.duration_seconds;
+                        if (targetPos < halfW) currentViewStart = 0;
+                        else if (targetPos > dur - halfW) currentViewStart = Math.max(0, dur - VIEW_WINDOW);
+                        else currentViewStart = targetPos - halfW;
+                    }
+                    drawMinimap();
+                    drawPlayhead();
+                }
+
+                loopId = requestAnimationFrame(detectionLoop);
+            }
+
+            playBtn.addEventListener('click', () => {
+                if (playing) stopPlaying();
+                else startPlaying();
+            });
+
+            // Expose for cleanup when face tracker stops
+            window.eyeDetection = { stop: stopPlaying };
+
+            updateLabels();
+        })();
+
+        // ============================================================
+        // Hand Speed Controller — pinch to grab, move up/down to change speed
+        // ============================================================
+        (function setupHandSpeed() {
+            const toggleBtn    = document.getElementById('hspToggle');
+            const speedDisplay = document.getElementById('hspSpeedValue');
+            const meterFill    = document.getElementById('hspMeterFill');
+            const pinchStatus  = document.getElementById('hspPinchStatus');
+
+            let enabled = false;
+            let loopId = null;
+            // When pinch starts, record the hand Y and current speed
+            let pinchAnchorY = null;
+            let anchorSpeed = 1.0;
+            let currentSpeed = 1.0;
+            const MIN_SPEED = 0.25;
+            const MAX_SPEED = 4.0;
+
+            function speedToPercent(s) {
+                return ((s - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100;
+            }
+
+            function updateUI() {
+                speedDisplay.textContent = currentSpeed.toFixed(2) + 'x';
+                meterFill.style.width = speedToPercent(currentSpeed) + '%';
+            }
+
+            function applySpeed(speed) {
+                currentSpeed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed));
+                // Apply to active audio source (normal playback)
+                if (audioSource && audioSource.playbackRate) {
+                    audioSource.playbackRate.value = currentSpeed;
+                }
+                // Apply to Paul stretch scrub worklet
+                // Default stretch=100 at speed 1x. Map: stretch = 100 / speed
+                // So 0.25x → 400 (super slow), 4x → 25 (fast)
+                if (scrubWorkletReady && scrubWorkletNode) {
+                    const stretchFactor = 100 / currentSpeed;
+                    scrubWorkletNode.port.postMessage({
+                        type: 'set-stretch',
+                        data: { factor: stretchFactor }
+                    });
+                }
+                updateUI();
+            }
+
+            function handLoop() {
+                if (!enabled) return;
+                const ht = window.handTracker;
+
+                if (ht && ht.detected && ht.pinching) {
+                    pinchStatus.textContent = 'Pinching';
+                    pinchStatus.className = 'hsp-pinch-indicator active';
+
+                    if (pinchAnchorY === null) {
+                        // Pinch just started — anchor current position and speed
+                        pinchAnchorY = ht.handY;
+                        anchorSpeed = currentSpeed;
+                    } else {
+                        // Compute delta: moving hand UP (smaller Y) = faster
+                        const deltaY = pinchAnchorY - ht.handY; // positive = hand moved up
+                        // Scale: full range of motion (~0.5 of frame) maps to full speed range
+                        const speedDelta = deltaY * (MAX_SPEED - MIN_SPEED) * 2;
+                        applySpeed(anchorSpeed + speedDelta);
+                    }
+                } else {
+                    // Not pinching — release anchor
+                    pinchAnchorY = null;
+                    if (ht && ht.detected) {
+                        pinchStatus.textContent = 'Hand detected';
+                        pinchStatus.className = 'hsp-pinch-indicator';
+                    } else {
+                        pinchStatus.textContent = 'No hand';
+                        pinchStatus.className = 'hsp-pinch-indicator';
+                    }
+                }
+
+                loopId = requestAnimationFrame(handLoop);
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                enabled = !enabled;
+                toggleBtn.textContent = enabled ? 'On' : 'Off';
+                toggleBtn.className = 'hsp-toggle' + (enabled ? ' active' : '');
+                if (enabled) {
+                    handLoop();
+                } else {
+                    if (loopId) { cancelAnimationFrame(loopId); loopId = null; }
+                    pinchAnchorY = null;
+                    // Reset speed to 1x
+                    applySpeed(1.0);
+                    pinchStatus.textContent = 'Pinch to control';
+                    pinchStatus.className = 'hsp-pinch-indicator';
+                }
+            });
+
+            window.handSpeed = {
+                stop() {
+                    enabled = false;
+                    if (loopId) { cancelAnimationFrame(loopId); loopId = null; }
+                    pinchAnchorY = null;
+                    applySpeed(1.0);
+                    toggleBtn.textContent = 'Off';
+                    toggleBtn.className = 'hsp-toggle';
+                    pinchStatus.textContent = 'Pinch to control';
+                    pinchStatus.className = 'hsp-pinch-indicator';
+                }
+            };
+
+            updateUI();
+        })();
 
         // Start
         init();

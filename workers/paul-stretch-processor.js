@@ -64,6 +64,7 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
         this.sourceBuffer = null;
         this.sourcePosition = 0;
         this.isPlaying = false;
+        this.loopAtEnd = false; // If true, don't fire 'ended' — just keep playing silently
 
         // Fade-in/out to avoid clicks
         this.fadeInLength = 1102; // ~25ms at 44.1kHz
@@ -359,6 +360,10 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
                     console.log(`🔀 Paul: Overlap ignored (fixed at 50%)`);
                     break;
 
+                case 'set-loop-at-end':
+                    this.loopAtEnd = !!data.enabled;
+                    break;
+
                 case 'set-position':
                     // Move source position and flush the input queue so new windows
                     // are read from the new location immediately. The output ring buffer
@@ -456,6 +461,10 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
                 // Check if we're truly done (source exhausted AND input queue can't fill a window)
                 if (this.sourcePosition >= this.sourceBuffer.length &&
                     this.samplesIn.getFramesAvailable() < this.winSize) {
+                    if (this.loopAtEnd) {
+                        // Don't end — just output silence until position is moved
+                        break;
+                    }
                     // Check if output is also exhausted
                     if (available === 0) {
                         this.isPlaying = false;
