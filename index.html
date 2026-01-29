@@ -154,6 +154,7 @@
             border: 1px solid rgba(255,255,255,0.1);
             overflow: hidden;
             background: #0a0a1a;
+            min-height: 705px;
         }
         #waveformContainer {
             background: #0a0a1a;
@@ -321,12 +322,21 @@
         }
         #handSpeedPanel .hsp-meter {
             height: 6px; background: #2a2a4a; border-radius: 3px; margin: 4px 0;
-            overflow: hidden;
+            overflow: visible; position: relative; cursor: pointer;
         }
         #handSpeedPanel .hsp-meter-fill {
             height: 100%; background: linear-gradient(90deg, #667eea, #5FB3B3);
-            border-radius: 3px; transition: width 0.1s;
+            border-radius: 3px; transition: width 0.1s; pointer-events: none;
         }
+        #handSpeedPanel .hsp-knob {
+            position: absolute; top: 50%; width: 14px; height: 14px;
+            background: #5FB3B3; border: 2px solid #fff; border-radius: 50%;
+            transform: translate(-50%, -50%); cursor: grab; transition: left 0.1s;
+            box-shadow: 0 0 6px rgba(95,179,179,0.5);
+        }
+        #handSpeedPanel .hsp-knob:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.15); }
+        #handSpeedPanel .hsp-knob.dragging { transition: none; }
+        #handSpeedPanel .hsp-meter-fill.dragging { transition: none; }
         #handSpeedPanel .hsp-info {
             font-size: 11px; color: rgba(224,224,224,0.5);
             display: flex; justify-content: space-between;
@@ -453,6 +463,17 @@
             <input type="range" id="reverbWetSlider" min="0" max="100" value="30" step="1"
                    style="width: 80px;">
         </div>
+        <!-- Paul Stretch window size -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-left: 16px;">
+            <span style="color: rgba(224,224,224,0.5); font-size: 11px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">PS Win:</span>
+            <select id="psWindowSize" style="padding: 4px 8px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #e0e0e0; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
+                <option value="1024">1024</option>
+                <option value="2048">2048</option>
+                <option value="4096" selected>4096</option>
+                <option value="8192">8192</option>
+                <option value="16384">16384</option>
+            </select>
+        </div>
         <!-- Filter controls now live on the spectrum plot -->
     </div>
 
@@ -477,31 +498,30 @@
         <!-- Eye Detection Control Panel -->
         <div id="eyeDetectionPanel">
             <div class="edp-title">
-                <span>Eye Detection (E)</span>
-                <button class="edp-toggle" id="edpToggle">Off</button>
+                <span>Eye Detection</span>
             </div>
             <div class="edp-row">
-                <button class="edp-btn" id="edpSetOpen">Set Open (O)</button>
+                <button class="edp-btn" id="edpSetOpen" style="flex: 1.3;">Set Open (O)</button>
                 <button class="edp-btn" id="edpSetClosed" style="flex: 1.3;">Set Closed (C)</button>
             </div>
             <div class="edp-pos">
                 <span id="edpOpenPos">Open: not set</span> &nbsp;|&nbsp; <span id="edpClosedPos">Closed: not set</span>
             </div>
-            <button class="edp-play" id="edpPlay">Play</button>
+            <button class="edp-play" id="edpPlay">Play (P)</button>
         </div>
 
         <!-- Hand Speed Control Panel -->
         <div id="handSpeedPanel">
             <div class="hsp-title">
                 <span>Pinch Speed</span>
-                <button class="hsp-toggle" id="hspToggle">Off</button>
             </div>
             <div class="hsp-speed" id="hspSpeedValue">1.00x</div>
-            <div class="hsp-meter">
+            <div class="hsp-meter" id="hspMeter">
                 <div class="hsp-meter-fill" id="hspMeterFill" style="width: 25%;"></div>
+                <div class="hsp-knob" id="hspKnob" style="left: 25%;"></div>
             </div>
             <div class="hsp-info">
-                <span>0.25x</span>
+                <span>0.10x</span>
                 <span>4.00x</span>
             </div>
             <div class="hsp-pinch-indicator" id="hspPinchStatus">Pinch to control</div>
@@ -589,6 +609,7 @@
         // Playhead & minimap state
         let playStartWallTime = 0;      // AudioContext.currentTime when playback started
         let playStartDataOffset = 0;    // MEG-time (seconds) where playback began
+        let currentPlaybackRate = 1.0;  // current playback rate multiplier
         let animationFrameId = null;    // rAF handle for animation loop
         const VIEW_WINDOW = 10;         // seconds of MEG data visible in main waveform
         let currentPlayheadTime = null; // current MEG-time position of playhead (null = not set)
@@ -1141,19 +1162,29 @@
                 ctx.stroke();
             }
 
-            // Eyes-closed marker
+            // Eyes-closed marker + highlight region
             if (startSec <= 74 && endSec >= 74) {
+                const dpr = window.devicePixelRatio;
                 const markerX = labelWidth + ((74 - startSec) / durationSec) * waveformWidth;
-                ctx.strokeStyle = '#ff4444';
-                ctx.lineWidth = 2;
+                // Blue highlight region to the right of marker
+                ctx.fillStyle = 'rgba(77,184,255,0.07)';
+                ctx.fillRect(markerX, 0, labelWidth + waveformWidth - markerX, height);
+                // Blue vertical line
+                ctx.strokeStyle = '#4db8ff';
+                ctx.lineWidth = 2.5 * dpr;
                 ctx.beginPath();
                 ctx.moveTo(markerX, 0);
                 ctx.lineTo(markerX, height);
                 ctx.stroke();
-                ctx.fillStyle = '#ff4444';
-                ctx.font = `${12 * window.devicePixelRatio}px sans-serif`;
+                // Blue label
+                ctx.fillStyle = '#4db8ff';
+                ctx.font = `bold ${14 * dpr}px 'IBM Plex Mono', monospace`;
                 ctx.textAlign = 'left';
-                ctx.fillText('Eyes Closed', markerX + 5, 15 * window.devicePixelRatio);
+                ctx.fillText('Eyes Closed', markerX + 6 * dpr, 18 * dpr);
+            } else if (startSec >= 74) {
+                // Entire view is in the eyes-closed region
+                ctx.fillStyle = 'rgba(77,184,255,0.07)';
+                ctx.fillRect(labelWidth, 0, waveformWidth, height);
             }
 
             // Time range label (lower right)
@@ -1239,11 +1270,13 @@
                 }
             }
 
-            // Eyes-closed marker at 74s
+            // Eyes-closed marker at 74s + highlight region
             if (totalDuration >= 74) {
                 const markerX = labelWidth + (74 / totalDuration) * plotWidth;
-                cctx.strokeStyle = 'rgba(255,68,68,0.5)';
-                cctx.lineWidth = 1;
+                cctx.fillStyle = 'rgba(77,184,255,0.07)';
+                cctx.fillRect(markerX, 0, labelWidth + plotWidth - markerX, h);
+                cctx.strokeStyle = 'rgba(77,184,255,0.6)';
+                cctx.lineWidth = 1.5;
                 cctx.beginPath();
                 cctx.moveTo(markerX, 0);
                 cctx.lineTo(markerX, h);
@@ -1482,7 +1515,7 @@
             }
 
             scrubWorkletNode = new AudioWorkletNode(ctx, 'paul-stretch-processor', {
-                processorOptions: { windowSize: 4096, stretchFactor: 100 }
+                processorOptions: { windowSize: 4096, stretchFactor: 100000 }
             });
 
             // Scrub filter chain: worklet → HP → LP → gain → destination
@@ -1541,6 +1574,14 @@
 
             scrubWorkletNode.port.postMessage({ type: 'seek', data: { position: audioPosSec } });
             scrubWorkletNode.port.postMessage({ type: 'play' });
+
+            // Apply current playback speed to the scrub worklet
+            if (currentPlaybackRate !== 1.0) {
+                scrubWorkletNode.port.postMessage({
+                    type: 'set-output-rate',
+                    data: { rate: currentPlaybackRate }
+                });
+            }
 
             // Fade in
             const ctx = audioContext;
@@ -1651,6 +1692,11 @@
             console.log(`[playAudio] startMegTime=${startMegTime.toFixed(4)}, audioOffsetSec=${audioOffsetSec.toFixed(4)}, bufferDuration=${bufferDuration.toFixed(4)}, remaining=${(bufferDuration - audioOffsetSec).toFixed(4)}s`);
             audioSource.start(0, audioOffsetSec);
 
+            // Apply current playback speed to the new source
+            if (currentPlaybackRate !== 1.0) {
+                audioSource.playbackRate.value = currentPlaybackRate;
+            }
+
             // Record timing references
             playStartWallTime = audioContext.currentTime;
             playStartDataOffset = startMegTime;
@@ -1706,9 +1752,9 @@
         function animationTick() {
             if (!isPlaying || !regionData) return;
 
-            // Calculate current MEG-time from AudioContext
+            // Calculate current MEG-time from AudioContext (accounting for playback rate)
             const wallElapsed = audioContext.currentTime - playStartWallTime;
-            const megTime = playStartDataOffset + wallElapsed * 44.1;
+            const megTime = playStartDataOffset + wallElapsed * 44.1 * currentPlaybackRate;
             const totalDuration = regionData.duration_seconds;
 
             if (megTime >= totalDuration) {
@@ -1871,19 +1917,24 @@
                 ctx.stroke();
             }
 
-            // Eyes-closed marker
+            // Eyes-closed marker + highlight region
             if (startSec <= 74 && endSec >= 74) {
                 const markerX = labelWidth + ((74 - startSec) / durationSec) * waveformWidth;
-                ctx.strokeStyle = '#ff4444';
-                ctx.lineWidth = 2;
+                ctx.fillStyle = 'rgba(77,184,255,0.07)';
+                ctx.fillRect(markerX, 0, labelWidth + waveformWidth - markerX, height);
+                ctx.strokeStyle = '#4db8ff';
+                ctx.lineWidth = 2.5 * dpr;
                 ctx.beginPath();
                 ctx.moveTo(markerX, 0);
                 ctx.lineTo(markerX, height);
                 ctx.stroke();
-                ctx.fillStyle = '#ff4444';
-                ctx.font = `${12 * dpr}px sans-serif`;
+                ctx.fillStyle = '#4db8ff';
+                ctx.font = `bold ${14 * dpr}px 'IBM Plex Mono', monospace`;
                 ctx.textAlign = 'left';
-                ctx.fillText('Eyes Closed', markerX + 5, 15 * dpr);
+                ctx.fillText('Eyes Closed', markerX + 6 * dpr, 18 * dpr);
+            } else if (startSec >= 74) {
+                ctx.fillStyle = 'rgba(77,184,255,0.07)';
+                ctx.fillRect(labelWidth, 0, waveformWidth, height);
             }
 
             // Time range label
@@ -1966,10 +2017,6 @@
                 if (e.target.matches('input, select, textarea')) return;
                 const ftToggle = document.getElementById('faceTrackerToggle');
                 if (ftToggle && !ftToggle.disabled) ftToggle.click();
-            } else if (e.key === 'e' || e.key === 'E') {
-                if (e.target.matches('input, select, textarea')) return;
-                const edpToggle = document.getElementById('edpToggle');
-                if (edpToggle) edpToggle.click();
             } else if (e.key === 'o' || e.key === 'O') {
                 if (e.target.matches('input, select, textarea')) return;
                 const btn = document.getElementById('edpSetOpen');
@@ -1977,6 +2024,10 @@
             } else if (e.key === 'c' || e.key === 'C') {
                 if (e.target.matches('input, select, textarea')) return;
                 const btn = document.getElementById('edpSetClosed');
+                if (btn) btn.click();
+            } else if (e.key === 'p' || e.key === 'P') {
+                if (e.target.matches('input, select, textarea')) return;
+                const btn = document.getElementById('edpPlay');
                 if (btn) btn.click();
             }
         });
@@ -2214,6 +2265,14 @@
             if (window._scrubReverbSend) {
                 window._scrubReverbSend.dryGain.gain.value = 1 - reverbWetDry;
                 window._scrubReverbSend.wetGain.gain.value = reverbWetDry;
+            }
+        });
+
+        // ===== PAUL STRETCH WINDOW SIZE =====
+        document.getElementById('psWindowSize').addEventListener('change', (e) => {
+            const size = parseInt(e.target.value);
+            if (scrubWorkletReady && scrubWorkletNode) {
+                scrubWorkletNode.port.postMessage({ type: 'set-window-size', data: { size } });
             }
         });
 
@@ -3019,12 +3078,22 @@
             // Setting it per-mousemove causes rebuildMinimapCache (3.6M samples filtered)
             // to run every animation frame during drag.
 
-            // During drag: ONLY update the spectrum filter handle overlay.
-            // Waveform + minimap are deferred to mouseup — they're too expensive per-frame.
+            // During drag: update spectrum overlay + waveform live
             if (!_filterDragRAF) {
                 _filterDragRAF = requestAnimationFrame(() => {
                     _filterDragRAF = 0;
                     redrawSpectrumOverlay();
+                    // Live waveform update during filter drag
+                    if (regionData && !isPlaying) {
+                        const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, regionData.duration_seconds);
+                        const data = getDataFromCacheSync(currentViewStart, viewEnd);
+                        if (data && data.length > 0) {
+                            const filtered = applyFilters(data, regionData.n_channels, regionData.sample_rate);
+                            drawTimeRangeSync(currentViewStart, VIEW_WINDOW, filtered, true);
+                            drawPlayhead();
+                            drawSpectrum(filtered, regionData.n_channels, regionData.sample_rate);
+                        }
+                    }
                 });
             }
         });
@@ -3295,7 +3364,7 @@
                 // Highlight thumb + index tips for pinch
                 const thumbTip = hand[4], indexTip = hand[8];
                 const pinchDist = dist(thumbTip, indexTip);
-                const isPinch = pinchDist < 0.06;
+                const isPinch = pinchDist < 0.04;
                 lmkCtx.fillStyle = isPinch ? '#ff6b6b' : '#5FB3B3';
                 for (const p of [thumbTip, indexTip]) {
                     lmkCtx.beginPath();
@@ -3378,7 +3447,7 @@
                         const thumbTip = hand[4];
                         const indexTip = hand[8];
                         const pinchDist = dist(thumbTip, indexTip);
-                        const isPinching = pinchDist < 0.06;
+                        const isPinching = pinchDist < 0.04;
                         // Wrist Y (landmark 0) for vertical position (0=top, 1=bottom)
                         const handY = hand[0].y;
                         window.handTracker = window.handTracker || {};
@@ -3412,6 +3481,7 @@
                     toggle.style.color = '#1a1a2e';
                     toggle.disabled = false;
                     document.getElementById('handSpeedPanel').style.display = 'block';
+                    if (window.handSpeed) window.handSpeed.start();
                     processFrame();
                 } catch (e) {
                     console.error('Face tracker error:', e);
@@ -3456,14 +3526,13 @@
         // ============================================================
         (function setupEyeDetection() {
             const panel     = document.getElementById('eyeDetectionPanel');
-            const toggleBtn = document.getElementById('edpToggle');
             const setOpenBtn   = document.getElementById('edpSetOpen');
             const setClosedBtn = document.getElementById('edpSetClosed');
             const openPosSpan  = document.getElementById('edpOpenPos');
             const closedPosSpan = document.getElementById('edpClosedPos');
             const playBtn   = document.getElementById('edpPlay');
 
-            let enabled = false;      // live detection on/off
+            let enabled = true;       // always enabled when panel is visible
             let playing = false;      // play mode active
             let openPos = null;       // MEG-time in seconds
             let closedPos = null;     // MEG-time in seconds
@@ -3480,13 +3549,6 @@
                 setOpenBtn.className   = 'edp-btn' + (openPos != null ? ' set' : '');
                 setClosedBtn.className = 'edp-btn' + (closedPos != null ? ' set' : '');
             }
-
-            toggleBtn.addEventListener('click', () => {
-                enabled = !enabled;
-                toggleBtn.textContent = enabled ? 'On' : 'Off';
-                toggleBtn.className = 'edp-toggle' + (enabled ? ' active' : '');
-                if (!enabled) stopPlaying();
-            });
 
             setOpenBtn.addEventListener('click', () => {
                 if (currentPlayheadTime != null) {
@@ -3533,8 +3595,9 @@
                     return;
                 }
 
-                // Use average of both eyes
-                const eyesOpen = ft.leftEyeOpen && ft.rightEyeOpen;
+                // Both eyes must be closed to count as closed
+                const bothClosed = !ft.leftEyeOpen && !ft.rightEyeOpen;
+                const eyesOpen = !bothClosed;
                 const newState = eyesOpen ? 'open' : 'closed';
 
                 if (newState !== lastEyeState) {
@@ -3586,10 +3649,11 @@
         // Hand Speed Controller — pinch to grab, move up/down to change speed
         // ============================================================
         (function setupHandSpeed() {
-            const toggleBtn    = document.getElementById('hspToggle');
             const speedDisplay = document.getElementById('hspSpeedValue');
             const meterFill    = document.getElementById('hspMeterFill');
             const pinchStatus  = document.getElementById('hspPinchStatus');
+            const meterBar     = document.getElementById('hspMeter');
+            const knob         = document.getElementById('hspKnob');
 
             let enabled = false;
             let loopId = null;
@@ -3597,32 +3661,76 @@
             let pinchAnchorY = null;
             let anchorSpeed = 1.0;
             let currentSpeed = 1.0;
-            const MIN_SPEED = 0.25;
+            const MIN_SPEED = 0.10;
             const MAX_SPEED = 4.0;
 
             function speedToPercent(s) {
                 return ((s - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100;
             }
+            function percentToSpeed(pct) {
+                return MIN_SPEED + (pct / 100) * (MAX_SPEED - MIN_SPEED);
+            }
 
             function updateUI() {
+                const pct = speedToPercent(currentSpeed) + '%';
                 speedDisplay.textContent = currentSpeed.toFixed(2) + 'x';
-                meterFill.style.width = speedToPercent(currentSpeed) + '%';
+                meterFill.style.width = pct;
+                knob.style.left = pct;
             }
+
+            // --- Draggable knob / click-on-meter ---
+            let knobDragging = false;
+            function pctFromEvent(e) {
+                const rect = meterBar.getBoundingClientRect();
+                return Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+            }
+            function startDrag(e) {
+                e.preventDefault();
+                knobDragging = true;
+                knob.classList.add('dragging');
+                meterFill.classList.add('dragging');
+            }
+            knob.addEventListener('mousedown', startDrag);
+            meterBar.addEventListener('mousedown', (e) => {
+                if (e.target === knob) return;
+                applySpeed(percentToSpeed(pctFromEvent(e)));
+                startDrag(e);
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!knobDragging) return;
+                applySpeed(percentToSpeed(pctFromEvent(e)));
+            });
+            window.addEventListener('mouseup', () => {
+                if (knobDragging) {
+                    knobDragging = false;
+                    knob.classList.remove('dragging');
+                    meterFill.classList.remove('dragging');
+                }
+            });
 
             function applySpeed(speed) {
                 currentSpeed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed));
+
+                // Re-anchor timing so playhead doesn't jump on speed change
+                if (isPlaying && audioContext) {
+                    const wallElapsed = audioContext.currentTime - playStartWallTime;
+                    const currentMegTime = playStartDataOffset + wallElapsed * 44.1 * currentPlaybackRate;
+                    playStartDataOffset = currentMegTime;
+                    playStartWallTime = audioContext.currentTime;
+                }
+                currentPlaybackRate = currentSpeed;
+
                 // Apply to active audio source (normal playback)
                 if (audioSource && audioSource.playbackRate) {
                     audioSource.playbackRate.value = currentSpeed;
                 }
-                // Apply to Paul stretch scrub worklet
-                // Default stretch=100 at speed 1x. Map: stretch = 100 / speed
-                // So 0.25x → 400 (super slow), 4x → 25 (fast)
+                // Apply to Paul stretch scrub worklet — output-side resampling
+                // rate > 1 = skip samples (faster/higher pitch)
+                // rate < 1 = repeat samples (slower/lower pitch)
                 if (scrubWorkletReady && scrubWorkletNode) {
-                    const stretchFactor = 100 / currentSpeed;
                     scrubWorkletNode.port.postMessage({
-                        type: 'set-stretch',
-                        data: { factor: stretchFactor }
+                        type: 'set-output-rate',
+                        data: { rate: currentSpeed }
                     });
                 }
                 updateUI();
@@ -3662,30 +3770,16 @@
                 loopId = requestAnimationFrame(handLoop);
             }
 
-            toggleBtn.addEventListener('click', () => {
-                enabled = !enabled;
-                toggleBtn.textContent = enabled ? 'On' : 'Off';
-                toggleBtn.className = 'hsp-toggle' + (enabled ? ' active' : '');
-                if (enabled) {
-                    handLoop();
-                } else {
-                    if (loopId) { cancelAnimationFrame(loopId); loopId = null; }
-                    pinchAnchorY = null;
-                    // Reset speed to 1x
-                    applySpeed(1.0);
-                    pinchStatus.textContent = 'Pinch to control';
-                    pinchStatus.className = 'hsp-pinch-indicator';
-                }
-            });
-
             window.handSpeed = {
+                start() {
+                    enabled = true;
+                    handLoop();
+                },
                 stop() {
                     enabled = false;
                     if (loopId) { cancelAnimationFrame(loopId); loopId = null; }
                     pinchAnchorY = null;
                     applySpeed(1.0);
-                    toggleBtn.textContent = 'Off';
-                    toggleBtn.className = 'hsp-toggle';
                     pinchStatus.textContent = 'Pinch to control';
                     pinchStatus.className = 'hsp-pinch-indicator';
                 }

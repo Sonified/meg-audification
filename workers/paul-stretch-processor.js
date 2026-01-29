@@ -78,6 +78,10 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
         this.outputReadPos = 0;
         this.outputWritePos = 0;
 
+        // Output-side playback rate: >1 = faster (skip samples), <1 = slower (repeat)
+        this.outputRate = 1.0;
+        this.outputAccum = 0.0; // fractional sample accumulator for rate != 1
+
         this.setupMessageHandler();
     }
 
@@ -364,6 +368,11 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
                     this.loopAtEnd = !!data.enabled;
                     break;
 
+                case 'set-output-rate':
+                    this.outputRate = Math.max(0.1, Math.min(8.0, data.rate));
+                    console.log(`⏩ Paul: Output rate: ${this.outputRate.toFixed(2)}x`);
+                    break;
+
                 case 'set-position':
                     // Move source position and flush the input queue so new windows
                     // are read from the new location immediately. The output ring buffer
@@ -433,7 +442,8 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
         let available = this.outputWritePos - this.outputReadPos;
         if (available < 0) available += this.outputRingBuffer.length;
 
-        const neededSamples = channel.length * 2; // Some headroom
+        // Scale headroom by output rate so faster playback can't drain the buffer
+        const neededSamples = Math.ceil(channel.length * 2 * Math.max(1, this.outputRate));
 
         // Keep feeding and processing until we have enough output
         while (available < neededSamples) {
@@ -448,6 +458,10 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
                         block[i] = this.sourceBuffer[this.sourcePosition++];
                     }
                     this.samplesIn.write(block);
+                } else if (this.loopAtEnd) {
+                    // Rewind to keep stretching the last portion of the buffer
+                    this.sourcePosition = Math.max(0, this.sourceBuffer.length - this.winSize * 2);
+                    continue;
                 } else {
                     // Source exhausted, can't feed more
                     break;
@@ -481,11 +495,29 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
             if (available < 0) available += this.outputRingBuffer.length;
         }
 
-        // Read from output ring buffer with fade handling
+        // Read from output ring buffer with fade handling and output rate
+        const ringLen = this.outputRingBuffer.length;
         for (let i = 0; i < channel.length; i++) {
-            let sample = this.outputRingBuffer[this.outputReadPos];
-            this.outputRingBuffer[this.outputReadPos] = 0;
-            this.outputReadPos = (this.outputReadPos + 1) % this.outputRingBuffer.length;
+            // Output rate: advance through ring buffer at variable speed
+            const readPosInt = this.outputReadPos;
+            const nextPos = (readPosInt + 1) % ringLen;
+            const frac = this.outputAccum - Math.floor(this.outputAccum);
+            // Linear interpolation between current and next sample
+            const s0 = this.outputRingBuffer[readPosInt];
+            const s1 = this.outputRingBuffer[nextPos];
+            let sample = s0 + (s1 - s0) * frac;
+
+            // Advance read position by outputRate
+            this.outputAccum += this.outputRate;
+            const advance = Math.floor(this.outputAccum);
+            if (advance > 0) {
+                // Clear consumed samples
+                for (let k = 0; k < advance; k++) {
+                    this.outputRingBuffer[(readPosInt + k) % ringLen] = 0;
+                }
+                this.outputReadPos = (readPosInt + advance) % ringLen;
+                this.outputAccum -= advance;
+            }
 
             // Apply fade-out
             if (this.fadeOutRemaining > 0) {
@@ -499,8 +531,8 @@ class PaulStretchProcessor extends AudioWorkletProcessor {
                     this.pendingSeekPosition = null;
                     this.resetBuffers();
                     this.fadeInRemaining = this.fadeInLength;
+                    this.outputAccum = 0;
                     console.log(`⏩ Paul: Fade-out complete, seeking to: ${this.sourcePosition}`);
-                    // Fill rest with silence and return - next frame will have fresh audio
                     for (let j = i; j < channel.length; j++) {
                         channel[j] = 0;
                     }
