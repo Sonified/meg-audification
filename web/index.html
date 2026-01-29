@@ -5,66 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MEG Audification</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧲</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1a1a2e;
-            color: #eee;
-            padding: 20px;
+            color: #e0e0e0;
+            padding: 24px;
         }
-        h1 { margin-bottom: 20px; color: #00d4ff; }
+        h1 {
+            margin-bottom: 24px;
+            color: #5FB3B3;
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
         .controls {
             display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 16px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
             align-items: center;
         }
         select, button {
-            padding: 10px 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
             cursor: pointer;
+            transition: all 0.15s ease;
         }
-        select { background: #2a2a4a; color: #fff; }
-        button { background: #00d4ff; color: #1a1a2e; font-weight: bold; }
-        button:hover { background: #00a8cc; }
-        button:disabled { background: #555; cursor: not-allowed; }
+        select {
+            background: #2a2a4a;
+            color: #e0e0e0;
+        }
+        select:hover { border-color: rgba(255,255,255,0.2); }
+        button {
+            background: #4a8a8a;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        button:hover {
+            background: #5a9a9a;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        button:active {
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+            transform: translateY(1px);
+        }
+        button:disabled {
+            background: #3a3a4a;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+            border-color: rgba(255,255,255,0.05);
+        }
         .info {
             background: #2a2a4a;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-family: monospace;
-            font-size: 13px;
+            padding: 16px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: rgba(224,224,224,0.7);
             min-height: 80px;
             max-height: 80px;
+            margin-bottom: 0;
+        }
+        .info strong {
+            color: #e0e0e0;
+            font-weight: 600;
         }
         .data-display {
             display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 16px;
+            margin-bottom: 24px;
         }
         .sensor-map {
             flex-shrink: 0;
             width: 700px;
             background: #0a0a1a;
-            border-radius: 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
+            padding: 8px;
         }
         .sensor-map img {
             width: 100%;
             height: auto;
-            border-radius: 3px;
+            border-radius: 2px;
         }
         #waveformContainer {
             background: #0a0a1a;
-            border-radius: 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
             overflow: hidden;
         }
         canvas { display: block; width: 100%; }
@@ -72,22 +114,24 @@
         .time-indicator {
             display: flex;
             justify-content: space-between;
-            padding: 10px;
+            padding: 8px 16px;
             background: #2a2a4a;
-            font-family: monospace;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: rgba(224,224,224,0.7);
         }
         .status {
-            padding: 10px;
+            padding: 8px 16px;
             background: #2a2a4a;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            border-radius: 4px;
+            margin-bottom: 16px;
         }
-        #seekSlider { width: 100%; margin: 10px 0; }
+        #seekSlider { width: 100%; margin: 8px 0; }
         .cache-indicator {
             display: flex;
             gap: 2px;
-            margin: 10px 0;
-            height: 20px;
+            margin: 8px 0;
+            height: 16px;
         }
         .chunk-bar {
             flex: 1;
@@ -95,8 +139,8 @@
             border-radius: 2px;
             transition: background 0.2s;
         }
-        .chunk-bar.loaded { background: #00d4ff; }
-        .chunk-bar.loading { background: #ff9800; }
+        .chunk-bar.loaded { background: #5FB3B3; }
+        .chunk-bar.loading { background: #d4a057; }
         .chunk-bar.current { box-shadow: 0 0 5px #fff; }
 
         /* Upload section */
@@ -104,13 +148,13 @@
             max-height: 200px;
             overflow-y: auto;
             background: #2a2a4a;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
         }
         .channel-selector label {
             display: inline-block;
-            padding: 3px 8px;
+            padding: 2px 8px;
             margin: 2px;
             background: #3a3a5a;
             border-radius: 3px;
@@ -118,26 +162,26 @@
             font-size: 12px;
         }
         .channel-selector input:checked + span {
-            color: #00d4ff;
+            color: #5FB3B3;
         }
         .quick-select {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .quick-select button {
-            padding: 5px 10px;
+            padding: 4px 8px;
             font-size: 12px;
             background: #3a3a5a;
         }
 
         /* Tabs - commented out, see upload code below
-        .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
-        .tab { padding: 10px 20px; background: #2a2a4a; border: none; border-radius: 5px 5px 0 0; color: #888; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+        .tab { padding: 8px 16px; background: #2a2a4a; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px 4px 0 0; color: #888; cursor: pointer; font-size: 14px; transition: all 0.15s; }
         .tab:hover { background: #3a3a5a; color: #ccc; }
-        .tab.active { background: #00d4ff; color: #1a1a2e; font-weight: bold; }
-        .tab-content { display: none; padding: 15px; background: #2a2a4a; border-radius: 0 5px 5px 5px; margin-bottom: 20px; }
+        .tab.active { background: #5FB3B3; color: #1a1a2e; font-weight: bold; }
+        .tab-content { display: none; padding: 16px; background: #2a2a4a; border-radius: 0 4px 4px 4px; margin-bottom: 16px; }
         .tab-content.active { display: block; }
         */
     </style>
@@ -153,9 +197,9 @@
         <button id="loadBtn" disabled>Load Region</button>
         <button id="playBtn" disabled>Play</button>
         <button id="stopBtn" disabled>Stop</button>
-        <span style="color: #555; margin: 0 10px;">|</span>
-        <button id="preloadToggle" style="background: #4a8a4a; font-size: 13px; width: 180px; text-align: center;">Preload: Auto</button>
-        <span id="cacheStatus" style="color: #4a8a4a; font-size: 13px; margin-left: 8px;"></span>
+        <span style="color: rgba(255,255,255,0.15); margin: 0 8px;">|</span>
+        <button id="preloadToggle" style="background: #4a7a5a; font-size: 12px; width: 160px; text-align: center;">Preload: Auto</button>
+        <span id="cacheStatus" style="color: rgba(224,224,224,0.5); font-size: 12px; font-family: 'IBM Plex Mono', monospace; margin-left: 8px;"></span>
     </div>
 
     <!--
@@ -202,9 +246,9 @@
     -->
 
     <div id="status" style="display:none;"></div>
-    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+    <div style="display: flex; gap: 16px; margin-bottom: 16px;">
         <div class="info" id="info" style="flex-shrink: 0; width: 700px;"></div>
-        <div id="spectrumContainer" style="flex: 1; background: #0a0a1a; border-radius: 5px; min-height: 80px; max-height: 80px; min-width: 0;">
+        <div id="spectrumContainer" style="flex: 1; background: #0a0a1a; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); min-height: 80px; max-height: 80px; min-width: 0;">
             <canvas id="spectrum"></canvas>
         </div>
     </div>
@@ -213,7 +257,7 @@
         <div class="sensor-map">
             <img src="sensor_layout.jpeg" alt="Neuromag MEG sensor layout">
         </div>
-        <div style="flex: 1; min-width: 0;">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
             <div>
                 <input type="range" id="seekSlider" min="0" max="133" value="0" step="0.1" style="width: 100%;">
                 <div id="cacheIndicator" style="display:none;"></div>
@@ -226,11 +270,14 @@
             <div id="waveformContainer">
                 <canvas id="waveform"></canvas>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0;">
-                <span style="color: #aaa; font-size: 13px; white-space: nowrap;">Gain: <span id="gainValue">2.00</span>×</span>
-                <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
-                       style="flex: 1; max-width: 300px;">
-            </div>
+        </div>
+    </div>
+    <div style="display: flex; gap: 16px; margin-top: -16px; margin-bottom: 24px;">
+        <div style="flex-shrink: 0; width: 700px;"></div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: rgba(224,224,224,0.5); font-size: 12px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">Gain: <span id="gainValue">2.00</span>×</span>
+            <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
+                   style="flex: 1; max-width: 300px;">
         </div>
     </div>
 
@@ -501,8 +548,12 @@
 
             regionData = { ...region };
 
-            // Start with no channels selected — user clicks to select
+            // Default-select MEG1732 if present in this region
             selectedChannels = new Set();
+            if (region.channels) {
+                const idx = region.channels.indexOf('MEG1732');
+                if (idx !== -1) selectedChannels.add(idx);
+            }
 
             const totalChunks = getTotalChunks();
             const bytesPerChunk = CHUNK_DURATION * region.sample_rate * region.n_channels * 4;
@@ -510,7 +561,7 @@
             info.innerHTML = `
                 <strong>${region.description}</strong><br>
                 Channels: ${region.n_channels} | Duration: ${region.duration_seconds}s | Sample rate: ${region.sample_rate} Hz<br>
-                <span style="color: #00d4ff;">Chunk size: ${CHUNK_DURATION}s (${(bytesPerChunk/1024).toFixed(0)} KB) | ${totalChunks} total chunks</span>
+                <span style="color: #5FB3B3;">Chunk size: ${CHUNK_DURATION}s (${(bytesPerChunk/1024).toFixed(0)} KB) | ${totalChunks} total chunks</span>
             `;
 
             // Setup canvas
@@ -802,11 +853,11 @@
             if (preloadMode === 'auto') {
                 preloadMode = 'ondemand';
                 preloadToggle.textContent = 'Preload: On Demand';
-                preloadToggle.style.background = '#aa5555';
+                preloadToggle.style.background = '#8a5555';
             } else {
                 preloadMode = 'auto';
                 preloadToggle.textContent = 'Preload: Auto';
-                preloadToggle.style.background = '#4a8a4a';
+                preloadToggle.style.background = '#4a7a5a';
                 // If we have region data, start prefetching
                 if (regionData && !isUploadedData) {
                     fetchAllChunks();
@@ -994,7 +1045,7 @@
             canvas.style.height = `${Math.min(nChannels * 25, 900)}px`;
             seekSlider.max = regionData.duration_seconds;
             totalTimeEl.textContent = `${regionData.duration_seconds.toFixed(2)}s`;
-            cacheIndicator.innerHTML = '<div style="color: #00d4ff; font-size: 12px;">All data in memory</div>';
+            cacheIndicator.innerHTML = '<div style="color: #5FB3B3; font-size: 12px;">All data in memory</div>';
             await drawTimeRange(0, 5);
             playBtn.disabled = false;
             stopBtn.disabled = false;
@@ -1134,10 +1185,10 @@
             const dbMax = 0;
 
             // Grid lines
-            specCtx.strokeStyle = '#222';
+            specCtx.strokeStyle = 'rgba(255,255,255,0.06)';
             specCtx.lineWidth = 1;
-            specCtx.font = `${9 * dpr}px monospace`;
-            specCtx.fillStyle = '#555';
+            specCtx.font = `${9 * dpr}px 'IBM Plex Mono', monospace`;
+            specCtx.fillStyle = 'rgba(224,224,224,0.4)';
 
             // Frequency axis labels (log-spaced)
             const freqTicks = [1, 5, 10, 20, 50, 100];
@@ -1167,34 +1218,59 @@
 
             // "Hz" label
             specCtx.textAlign = 'center';
-            specCtx.fillStyle = '#444';
+            specCtx.fillStyle = 'rgba(224,224,224,0.3)';
             specCtx.fillText('Hz', pad.left + plotW / 2, h - 1 * dpr);
 
             // Band markers (alpha, beta, etc.)
             const bands = [
-                { name: 'δ', lo: 0.5, hi: 4, color: '#666' },
-                { name: 'θ', lo: 4, hi: 8, color: '#666' },
-                { name: 'α', lo: 8, hi: 13, color: '#ff4444' },
-                { name: 'β', lo: 13, hi: 30, color: '#666' },
-                { name: 'γ', lo: 30, hi: 100, color: '#666' },
+                { name: 'δ', lo: 0.5, hi: 4, color: 'rgba(224,224,224,0.5)' },
+                { name: 'θ', lo: 4, hi: 8, color: 'rgba(224,224,224,0.5)' },
+                { name: 'α', lo: 8, hi: 13, color: '#dd6666' },
+                { name: 'β', lo: 13, hi: 30, color: 'rgba(224,224,224,0.5)' },
+                { name: 'γ', lo: 30, hi: 100, color: 'rgba(224,224,224,0.5)' },
             ];
             for (const b of bands) {
                 const x1 = freqToX(b.lo);
                 const x2 = freqToX(Math.min(b.hi, maxFreq));
-                specCtx.fillStyle = b.color === '#ff4444' ? 'rgba(255,68,68,0.08)' : 'rgba(255,255,255,0.02)';
+                specCtx.fillStyle = b.color === '#dd6666' ? 'rgba(221,102,102,0.15)' : 'rgba(255,255,255,0.02)';
                 specCtx.fillRect(x1, pad.top, x2 - x1, plotH);
                 specCtx.fillStyle = b.color;
-                specCtx.font = `${8 * dpr}px sans-serif`;
+                specCtx.font = `bold ${10 * dpr}px 'IBM Plex Mono', monospace`;
                 specCtx.textAlign = 'center';
                 specCtx.textBaseline = 'top';
                 specCtx.fillText(b.name, (x1 + x2) / 2, pad.top + 1 * dpr);
             }
 
-            // Draw spectrum line
-            specCtx.strokeStyle = '#ffffff';
-            specCtx.lineWidth = 1.5 * dpr;
+            // Draw spectrum fill (area under curve)
             specCtx.beginPath();
             let started = false;
+            let lastX = pad.left;
+
+            for (let i = 1; i < nBins; i++) {
+                const freq = freqs[i];
+                if (freq > maxFreq) break;
+                if (freq < 0.3) continue;
+                const x = freqToX(freq);
+                const db = Math.max(dbMin, Math.min(dbMax, power[i]));
+                const y = pad.top + ((dbMax - db) / (dbMax - dbMin)) * plotH;
+
+                if (!started) { specCtx.moveTo(x, pad.top + plotH); specCtx.lineTo(x, y); started = true; }
+                else specCtx.lineTo(x, y);
+                lastX = x;
+            }
+            specCtx.lineTo(lastX, pad.top + plotH);
+            specCtx.closePath();
+            const fillGrad = specCtx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+            fillGrad.addColorStop(0, 'rgba(95,179,179,0.25)');
+            fillGrad.addColorStop(1, 'rgba(95,179,179,0.02)');
+            specCtx.fillStyle = fillGrad;
+            specCtx.fill();
+
+            // Draw spectrum line
+            specCtx.strokeStyle = '#5FB3B3';
+            specCtx.lineWidth = 1.5 * dpr;
+            specCtx.beginPath();
+            started = false;
 
             for (let i = 1; i < nBins; i++) {
                 const freq = freqs[i];
@@ -1210,7 +1286,7 @@
             specCtx.stroke();
 
             // Border
-            specCtx.strokeStyle = '#333';
+            specCtx.strokeStyle = 'rgba(255,255,255,0.1)';
             specCtx.lineWidth = 1;
             specCtx.strokeRect(pad.left, pad.top, plotW, plotH);
         }
