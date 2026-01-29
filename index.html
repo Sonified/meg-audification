@@ -66,6 +66,11 @@
             box-shadow: none;
             border-color: rgba(255,255,255,0.05);
         }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 2px 4px rgba(0,0,0,0.3); background: #4a8a8a; }
+            50% { box-shadow: 0 0 18px rgba(95,179,179,0.7); background: #5FB3B3; }
+        }
+        .pulse { animation: pulse-glow 1.5s ease-in-out infinite; }
         .info {
             background: #2a2a4a;
             padding: 16px;
@@ -89,7 +94,8 @@
         }
         .sensor-map {
             flex-shrink: 0;
-            width: 700px;
+            width: 715px;
+            aspect-ratio: 1056 / 992;
             background: #0a0a1a;
             border-radius: 4px;
             border: 1px solid rgba(255,255,255,0.1);
@@ -247,7 +253,11 @@
 
     <div id="status" style="display:none;"></div>
     <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-        <div class="info" id="info" style="flex-shrink: 0; width: 700px;"></div>
+        <div class="info" id="info" style="flex-shrink: 0; width: 715px;">
+                <strong>No Region Loaded</strong><br>
+                Channels: 0 | Duration: 0s | Sample rate: N/A<br>
+                <span style="color: #5FB3B3;">Chunk size: N/A | 0 total chunks</span>
+        </div>
         <div id="spectrumContainer" style="flex: 1; background: #0a0a1a; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); min-height: 80px; max-height: 80px; min-width: 0;">
             <canvas id="spectrum"></canvas>
         </div>
@@ -255,17 +265,14 @@
 
     <div class="data-display">
         <div class="sensor-map">
-            <img src="sensor_layout.jpeg" alt="Neuromag MEG sensor layout">
+            <img id="sensorImg" src="sensor_layout.jpeg" alt="Neuromag MEG sensor layout">
         </div>
         <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
             <div>
                 <input type="range" id="seekSlider" min="0" max="133" value="0" step="0.1" style="width: 100%;">
                 <div id="cacheIndicator" style="display:none;"></div>
-                <div class="time-indicator">
-                    <span id="currentTime">0.00s</span>
-                    <span style="color: #ff4444;">Eyes closed @ 74s</span>
-                    <span id="totalTime">133.00s</span>
-                </div>
+                <span id="currentTime" style="display:none;">0.00s</span>
+                <span id="totalTime" style="display:none;">133.00s</span>
             </div>
             <div id="waveformContainer">
                 <canvas id="waveform"></canvas>
@@ -273,7 +280,7 @@
         </div>
     </div>
     <div style="display: flex; gap: 16px; margin-top: -16px; margin-bottom: 24px;">
-        <div style="flex-shrink: 0; width: 700px;"></div>
+        <div style="flex-shrink: 0; width: 715px;"></div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: rgba(224,224,224,0.5); font-size: 12px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">Gain: <span id="gainValue">2.00</span>×</span>
             <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
@@ -524,6 +531,7 @@
                 });
 
                 loadBtn.disabled = false;
+                loadBtn.classList.add('pulse');
                 document.getElementById('cacheStatus').textContent = 'Ready. Press Enter or click Load.';
             } catch (err) {
                 document.getElementById('cacheStatus').textContent = `Error: ${err.message}`;
@@ -534,6 +542,7 @@
         // ===== LOAD REGION =====
 
         async function loadRegion() {
+            loadBtn.classList.remove('pulse');
             const regionKey = regionSelect.value;
             if (!regionKey) return;
 
@@ -547,6 +556,12 @@
             isUploadedData = false;
 
             regionData = { ...region };
+
+            // Update sensor map image based on region
+            const sensorImg = document.getElementById('sensorImg');
+            sensorImg.src = regionKey === 'left_occipital'
+                ? 'Neuromag_MEG_sensor_layout_Black_L_Occipital_Highlight.jpg'
+                : 'sensor_layout.jpeg';
 
             // Default-select MEG1732 if present in this region
             selectedChannels = new Set();
@@ -566,7 +581,7 @@
 
             // Setup canvas
             canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-            const canvasH = Math.min(region.n_channels * 30, 900);
+            const canvasH = Math.min(region.n_channels * 26.5, 900);
             canvas.height = canvasH * window.devicePixelRatio;
             canvas.style.height = `${canvasH}px`;
 
@@ -655,8 +670,8 @@
                 ctx.stroke();
 
                 // Waveform
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = isSelected ? color : 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = isSelected ? 1.5 : 1;
                 ctx.beginPath();
 
                 const samplesPerPixel = nSamples / waveformWidth;
@@ -1149,8 +1164,13 @@
             return { freqs, power, nBins, freqRes };
         }
 
+        // Cached spectrum state for hover interaction
+        let lastSpectrumState = null;
+        let spectrumHoverX = -1;
+
         // Draw power spectrum line plot
         function drawSpectrum(data, nChannels, sampleRate) {
+            if (data) window._lastSpectrumArgs = [data, nChannels, sampleRate];
             const container = document.getElementById('spectrumContainer');
             const dpr = window.devicePixelRatio;
             spectrumCanvas.width = container.clientWidth * dpr;
@@ -1160,18 +1180,12 @@
 
             const w = spectrumCanvas.width;
             const h = spectrumCanvas.height;
-            const pad = { left: 35 * dpr, right: 10 * dpr, top: 8 * dpr, bottom: 18 * dpr };
+            const pad = { left: 35 * dpr, right: 10 * dpr, top: 8 * dpr, bottom: 24 * dpr };
             const plotW = w - pad.left - pad.right;
             const plotH = h - pad.top - pad.bottom;
 
             specCtx.fillStyle = '#0a0a1a';
             specCtx.fillRect(0, 0, w, h);
-
-            if (!data || data.length === 0) return;
-
-            const spectrum = computeSpectrum(data, nChannels, sampleRate);
-            if (!spectrum) return;
-            const { freqs, power, nBins } = spectrum;
 
             // X range: 0 to 100 Hz (sqrt-scaled so low freqs get more room)
             const maxFreq = 100;
@@ -1185,9 +1199,9 @@
             const dbMax = 0;
 
             // Grid lines
-            specCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+            specCtx.strokeStyle = 'rgba(255,255,255,0.12)';
             specCtx.lineWidth = 1;
-            specCtx.font = `${9 * dpr}px 'IBM Plex Mono', monospace`;
+            specCtx.font = `${11 * dpr}px 'IBM Plex Mono', monospace`;
             specCtx.fillStyle = 'rgba(224,224,224,0.4)';
 
             // Frequency axis labels (log-spaced)
@@ -1201,7 +1215,7 @@
                 specCtx.moveTo(x, pad.top);
                 specCtx.lineTo(x, pad.top + plotH);
                 specCtx.stroke();
-                specCtx.fillText(`${f}`, x, pad.top + plotH + 2 * dpr);
+                specCtx.fillText(`${f}`, x, pad.top + plotH + 4 * dpr);
             }
 
             // dB axis labels
@@ -1219,7 +1233,7 @@
             // "Hz" label
             specCtx.textAlign = 'center';
             specCtx.fillStyle = 'rgba(224,224,224,0.3)';
-            specCtx.fillText('Hz', pad.left + plotW / 2, h - 1 * dpr);
+            specCtx.fillText('Hz', pad.left + plotW / 2, h - 7 * dpr);
 
             // Band markers (alpha, beta, etc.)
             const bands = [
@@ -1235,11 +1249,23 @@
                 specCtx.fillStyle = b.color === '#dd6666' ? 'rgba(221,102,102,0.15)' : 'rgba(255,255,255,0.02)';
                 specCtx.fillRect(x1, pad.top, x2 - x1, plotH);
                 specCtx.fillStyle = b.color;
-                specCtx.font = `bold ${10 * dpr}px 'IBM Plex Mono', monospace`;
+                specCtx.font = `bold ${12 * dpr}px 'IBM Plex Mono', monospace`;
                 specCtx.textAlign = 'center';
                 specCtx.textBaseline = 'top';
                 specCtx.fillText(b.name, (x1 + x2) / 2, pad.top + 1 * dpr);
             }
+
+            // Border
+            specCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+            specCtx.lineWidth = 1;
+            specCtx.strokeRect(pad.left, pad.top, plotW, plotH);
+
+            // If no data, just show the empty axes
+            if (!data || data.length === 0) return;
+
+            const spectrum = computeSpectrum(data, nChannels, sampleRate);
+            if (!spectrum) return;
+            const { freqs, power, nBins } = spectrum;
 
             // Draw spectrum fill (area under curve)
             specCtx.beginPath();
@@ -1285,11 +1311,150 @@
             }
             specCtx.stroke();
 
-            // Border
-            specCtx.strokeStyle = 'rgba(255,255,255,0.1)';
-            specCtx.lineWidth = 1;
-            specCtx.strokeRect(pad.left, pad.top, plotW, plotH);
+            // Cache state for hover
+            lastSpectrumState = { freqs, power, nBins, pad, plotW, plotH, w, h, dpr, dbMin, dbMax, maxFreq, minFreq, freqToX };
+
+            // Draw hover overlay if active
+            if (spectrumHoverX >= 0) drawSpectrumHover(spectrumHoverVisible);
         }
+
+        function drawSpectrumHover(showLabel) {
+            const s = lastSpectrumState;
+            if (!s || spectrumHoverX < 0) return;
+            const { freqs, power, nBins, pad, plotW, plotH, dpr, dbMin, dbMax, maxFreq, minFreq, freqToX } = s;
+
+            // Convert CSS mouse X to canvas X
+            const cx = spectrumHoverX * dpr;
+            if (cx < pad.left || cx > pad.left + plotW) return;
+
+            // Reverse freqToX: cx = pad.left + ((sqrt(f) - sqrt(minFreq)) / (sqrt(maxFreq) - sqrt(minFreq))) * plotW
+            const ratio = (cx - pad.left) / plotW;
+            const sqrtF = Math.sqrt(minFreq) + ratio * (Math.sqrt(maxFreq) - Math.sqrt(minFreq));
+            const hoverFreq = sqrtF * sqrtF;
+
+            // Find closest bin
+            let closestBin = 1;
+            let closestDist = Infinity;
+            for (let i = 1; i < nBins; i++) {
+                if (freqs[i] > maxFreq) break;
+                const d = Math.abs(freqs[i] - hoverFreq);
+                if (d < closestDist) { closestDist = d; closestBin = i; }
+            }
+
+            const freq = freqs[closestBin];
+            const db = Math.max(dbMin, Math.min(dbMax, power[closestBin]));
+            const lineX = freqToX(freq);
+            const lineY = pad.top + ((dbMax - db) / (dbMax - dbMin)) * plotH;
+
+            // Vertical crosshair line (always shown)
+            specCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+            specCtx.lineWidth = 1;
+            specCtx.beginPath();
+            specCtx.moveTo(lineX, pad.top);
+            specCtx.lineTo(lineX, pad.top + plotH);
+            specCtx.stroke();
+
+            // Dot on the line (always shown)
+            specCtx.fillStyle = '#5FB3B3';
+            specCtx.beginPath();
+            specCtx.arc(lineX, lineY, 3 * dpr, 0, Math.PI * 2);
+            specCtx.fill();
+
+            // Label only shown after pause, with fade-in opacity
+            if (!showLabel) return;
+            const opacity = spectrumLabelOpacity;
+
+            const label = `${freq.toFixed(1)} Hz  ${db.toFixed(1)} dB`;
+            specCtx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
+            const textW = specCtx.measureText(label).width;
+
+            // Position above the line, or below if too close to top
+            const aboveY = lineY - 8 * dpr;
+            const belowY = lineY + 14 * dpr;
+            const textY = aboveY > pad.top + 14 * dpr ? aboveY : belowY;
+
+            // Center on lineX, but clamp to plot area
+            let textX = lineX;
+            const halfW = textW / 2 + 4 * dpr;
+            if (textX - halfW < pad.left) textX = pad.left + halfW;
+            if (textX + halfW > pad.left + plotW) textX = pad.left + plotW - halfW;
+
+            // Background pill
+            specCtx.fillStyle = `rgba(10,10,26,${0.55 * opacity})`;
+            specCtx.beginPath();
+            const pillX = textX - textW / 2 - 4 * dpr;
+            const pillY = textY - 8 * dpr;
+            const pillW = textW + 8 * dpr;
+            const pillH = 12 * dpr;
+            specCtx.roundRect(pillX, pillY, pillW, pillH, 3 * dpr);
+            specCtx.fill();
+
+            // Text
+            specCtx.fillStyle = `rgba(95,179,179,${opacity})`;
+            specCtx.textAlign = 'center';
+            specCtx.textBaseline = 'middle';
+            specCtx.fillText(label, textX, textY - 2 * dpr);
+        }
+
+        // Spectrum hover events: crosshair immediate, label after 200ms pause with fade-in
+        let spectrumHoverTimer = null;
+        let spectrumHoverVisible = false;
+        let spectrumLabelOpacity = 0;
+        let spectrumFadeAnim = null;
+
+        function startLabelFade() {
+            spectrumHoverVisible = true;
+            spectrumLabelOpacity = 0;
+            const startTime = performance.now();
+            const fadeDuration = 200;
+            function fadeStep(now) {
+                spectrumLabelOpacity = Math.min(1, (now - startTime) / fadeDuration);
+                if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+                if (spectrumLabelOpacity < 1 && spectrumHoverVisible) {
+                    spectrumFadeAnim = requestAnimationFrame(fadeStep);
+                } else {
+                    spectrumFadeAnim = null;
+                }
+            }
+            spectrumFadeAnim = requestAnimationFrame(fadeStep);
+        }
+
+        spectrumCanvas.addEventListener('mousemove', (e) => {
+            const rect = spectrumCanvas.getBoundingClientRect();
+            const newX = e.clientX - rect.left;
+
+            // Always update crosshair position immediately
+            spectrumHoverX = newX;
+
+            if (spectrumHoverVisible) {
+                // Label already showing, just redraw
+                if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+                return;
+            }
+
+            // Reset timer for label appearance
+            if (spectrumHoverTimer) clearTimeout(spectrumHoverTimer);
+            spectrumHoverTimer = setTimeout(() => {
+                startLabelFade();
+            }, 200);
+
+            // Redraw with crosshair only (no label yet)
+            if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+        });
+
+        spectrumCanvas.addEventListener('mouseleave', () => {
+            if (spectrumHoverTimer) clearTimeout(spectrumHoverTimer);
+            spectrumHoverTimer = null;
+            if (spectrumFadeAnim) cancelAnimationFrame(spectrumFadeAnim);
+            spectrumFadeAnim = null;
+            spectrumHoverX = -1;
+            spectrumHoverVisible = false;
+            spectrumLabelOpacity = 0;
+            if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+        });
+
+        // Draw empty spectrum axes on load
+        drawSpectrum(null, 0, 0);
 
         // Start
         init();
