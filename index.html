@@ -9,16 +9,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root { --page-bg: #1a1a2e; --box-radius: 8px; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
+            background: var(--page-bg);
             color: #e0e0e0;
             padding: 24px;
         }
         h1 {
             margin-bottom: 24px;
-            color: #5FB3B3;
+            background: linear-gradient(135deg, #667eea 0%, #9b6bc9 50%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             font-weight: 700;
             font-size: 24px;
             letter-spacing: -0.5px;
@@ -46,16 +50,24 @@
         }
         select:hover { border-color: rgba(255,255,255,0.2); }
         button {
-            background: #4a8a8a;
-            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
             font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            height: 38px;
+            line-height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(102,126,234,0.3);
         }
-        button:hover {
-            background: #5a9a9a;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(102,126,234,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+            background: linear-gradient(135deg, #7a8ef0 0%, #8a5fb5 100%);
         }
-        button:active {
+        button:active:not(:disabled) {
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
             transform: translateY(1px);
         }
@@ -66,15 +78,43 @@
             box-shadow: none;
             border-color: rgba(255,255,255,0.05);
         }
+        #playPauseBtn {
+            width: 135px;
+            min-width: 135px;
+        }
+        #loopBtn {
+            width: 135px;
+            min-width: 135px;
+        }
+        #loopBtn:not(.loop-active) {
+            background: linear-gradient(135deg, #6b5a7a 0%, #4a3d5a 100%);
+        }
+        #loopBtn:not(.loop-active):hover:not(:disabled) {
+            background: linear-gradient(135deg, #7b6a8a 0%, #5a4d6a 100%);
+        }
+        #loopBtn.loop-active {
+            background: linear-gradient(135deg, #9b6bc9 0%, #7a4ba9 100%);
+            box-shadow: 0 0 8px rgba(155,107,201,0.4);
+        }
+        #loopBtn.loop-active:hover:not(:disabled) {
+            background: linear-gradient(135deg, #ab7bd9 0%, #8a5bb9 100%);
+            box-shadow: 0 0 12px rgba(155,107,201,0.5);
+        }
+        .play-active {
+            background: linear-gradient(135deg, #4a9b6a 0%, #2d7048 100%) !important;
+        }
+        .play-active:hover:not(:disabled) {
+            background: linear-gradient(135deg, #5aab7a 0%, #3d8058 100%) !important;
+        }
         @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 2px 4px rgba(0,0,0,0.3); background: #4a8a8a; }
-            50% { box-shadow: 0 0 18px rgba(95,179,179,0.7); background: #5FB3B3; }
+            0%, 100% { box-shadow: 0 3px 6px rgba(0,0,0,0.25); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+            50% { box-shadow: 0 0 18px rgba(102,126,234,0.7); background: linear-gradient(135deg, #7a8ef0 0%, #8a5fb5 100%); }
         }
         .pulse { animation: pulse-glow 1.5s ease-in-out infinite; }
         .info {
             background: #2a2a4a;
             padding: 16px;
-            border-radius: 4px;
+            border-radius: var(--box-radius);
             border: 1px solid rgba(255,255,255,0.1);
             font-family: 'IBM Plex Mono', monospace;
             font-size: 12px;
@@ -97,7 +137,7 @@
             width: 715px;
             aspect-ratio: 1056 / 992;
             background: #0a0a1a;
-            border-radius: 4px;
+            border-radius: var(--box-radius);
             border: 1px solid rgba(255,255,255,0.1);
             display: flex;
             align-items: center;
@@ -109,14 +149,18 @@
             height: auto;
             border-radius: 2px;
         }
-        #waveformContainer {
-            background: #0a0a1a;
-            border-radius: 4px;
+        .waveform-panel {
+            border-radius: var(--box-radius);
             border: 1px solid rgba(255,255,255,0.1);
             overflow: hidden;
+            background: #0a0a1a;
+        }
+        #waveformContainer {
+            background: #0a0a1a;
         }
         canvas { display: block; width: 100%; }
         input[type="range"] { opacity: 0.5; }
+        #spectrumContainer { cursor: default; }
         .time-indicator {
             display: flex;
             justify-content: space-between;
@@ -132,22 +176,6 @@
             border-radius: 4px;
             margin-bottom: 16px;
         }
-        #seekSlider { width: 100%; margin: 8px 0; }
-        .cache-indicator {
-            display: flex;
-            gap: 2px;
-            margin: 8px 0;
-            height: 16px;
-        }
-        .chunk-bar {
-            flex: 1;
-            background: #333;
-            border-radius: 2px;
-            transition: background 0.2s;
-        }
-        .chunk-bar.loaded { background: #5FB3B3; }
-        .chunk-bar.loading { background: #d4a057; }
-        .chunk-bar.current { box-shadow: 0 0 5px #fff; }
 
         /* Upload section */
         .channel-selector {
@@ -201,8 +229,8 @@
             <option value="">Loading regions...</option>
         </select>
         <button id="loadBtn" disabled>Load Region</button>
-        <button id="playBtn" disabled>Play</button>
-        <button id="stopBtn" disabled>Stop</button>
+        <button id="playPauseBtn" disabled>▶️ Play</button>
+        <button id="loopBtn" disabled>🔁 Loop</button>
         <span style="color: rgba(255,255,255,0.15); margin: 0 8px;">|</span>
         <button id="preloadToggle" style="background: #4a7a5a; font-size: 12px; width: 160px; text-align: center;">Preload: Auto</button>
         <span id="cacheStatus" style="color: rgba(224,224,224,0.5); font-size: 12px; font-family: 'IBM Plex Mono', monospace; margin-left: 8px;"></span>
@@ -258,7 +286,7 @@
                 Channels: 0 | Duration: 0s | Sample rate: N/A<br>
                 <span style="color: #5FB3B3;">Chunk size: N/A | 0 total chunks</span>
         </div>
-        <div id="spectrumContainer" style="flex: 1; background: #0a0a1a; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); min-height: 80px; max-height: 80px; min-width: 0;">
+        <div id="spectrumContainer" style="flex: 1; background: #0a0a1a; border-radius: var(--box-radius); border: 1px solid rgba(255,255,255,0.1); min-height: 100px; max-height: 100px; min-width: 0; overflow: hidden;">
             <canvas id="spectrum"></canvas>
         </div>
     </div>
@@ -267,15 +295,14 @@
         <div class="sensor-map">
             <img id="sensorImg" src="sensor_layout.jpeg" alt="Neuromag MEG sensor layout">
         </div>
-        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
-            <div>
-                <input type="range" id="seekSlider" min="0" max="133" value="0" step="0.1" style="width: 100%;">
-                <div id="cacheIndicator" style="display:none;"></div>
-                <span id="currentTime" style="display:none;">0.00s</span>
-                <span id="totalTime" style="display:none;">133.00s</span>
-            </div>
-            <div id="waveformContainer">
-                <canvas id="waveform"></canvas>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0;">
+            <div class="waveform-panel">
+                <div id="minimapContainer" style="background: #0a0a1a; height: 55px; cursor: pointer; position: relative;">
+                    <canvas id="minimap" style="display: block; width: 100%; height: 100%;"></canvas>
+                </div>
+                <div id="waveformContainer">
+                    <canvas id="waveform"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -286,6 +313,7 @@
             <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
                    style="flex: 1; max-width: 300px;">
         </div>
+        <!-- Filter controls now live on the spectrum plot -->
     </div>
 
     <script>
@@ -310,15 +338,18 @@
         */
 
         // ===== CONFIGURATION =====
-        const DATA_BASE_URL = '../data/processed/regions';
+        const DATA_BASE_URL = 'data/processed/regions';
         const CHUNK_DURATION = 5;  // seconds per chunk
         const PREFETCH_AHEAD = 2;   // prefetch this many chunks ahead
+        const PAGE_BG = getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim();
 
         // ===== STATE =====
         let metadata = null;
         let regionData = null;
         let audioContext = null;
         let audioSource = null;
+        let gainNode = null;
+        const FADE_MS = 25;
         let isPlaying = false;
         let playStartTime = 0;
         let playStartOffset = 0;
@@ -330,22 +361,148 @@
         let preloadMode = 'auto';  // 'auto' = prefetch all, 'ondemand' = fetch only when needed
         let selectedChannels = new Set();  // Channels selected for audification
 
+        // High-pass filter state
+        let highPassEnabled = false;
+        let highPassFreq = 1.0;  // Hz
+        let highPassFilterNode = null;  // Web Audio BiquadFilterNode for audio playback
+
+        // Low-pass filter state
+        let lowPassEnabled = false;
+        let lowPassFreq = 40.0;  // Hz
+        let lowPassFilterNode = null;
+
+        // Scrub audio (Paul stretch) state
+        let scrubWorkletNode = null;
+        let scrubGainNode = null;
+        let scrubHPFilter = null;
+        let scrubLPFilter = null;
+        let scrubMonoBuffer = null;   // Normalized mono Float32Array for worklet
+        let scrubWorkletReady = false;
+
+        // Playhead & minimap state
+        let playStartWallTime = 0;      // AudioContext.currentTime when playback started
+        let playStartDataOffset = 0;    // MEG-time (seconds) where playback began
+        let animationFrameId = null;    // rAF handle for animation loop
+        const VIEW_WINDOW = 10;         // seconds of MEG data visible in main waveform
+        let currentPlayheadTime = null; // current MEG-time position of playhead (null = not set)
+        let currentViewStart = 0;       // left edge of main waveform view (seconds)
+
+        // Minimap offscreen cache — waveform data is expensive to redraw
+        let minimapCacheCanvas = null;
+        let minimapCacheDirty = true;   // true = waveforms need redraw
+
         // ===== DOM ELEMENTS =====
         const regionSelect = document.getElementById('regionSelect');
         const loadBtn = document.getElementById('loadBtn');
-        const playBtn = document.getElementById('playBtn');
-        const stopBtn = document.getElementById('stopBtn');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const loopBtn = document.getElementById('loopBtn');
+        let isLooping = false;
         const status = document.getElementById('status');
         const info = document.getElementById('info');
         const canvas = document.getElementById('waveform');
         const ctx = canvas.getContext('2d');
-        const seekSlider = document.getElementById('seekSlider');
-        const currentTimeEl = document.getElementById('currentTime');
-        const totalTimeEl = document.getElementById('totalTime');
-        const cacheIndicator = document.getElementById('cacheIndicator');
+        const minimapCanvas = document.getElementById('minimap');
+        const minimapCtx = minimapCanvas.getContext('2d');
         const preloadToggle = document.getElementById('preloadToggle');
         const spectrumCanvas = document.getElementById('spectrum');
         const specCtx = spectrumCanvas.getContext('2d');
+        // Filter handle interaction state (for spectrum plot handles)
+        let filterDragging = null;  // 'hp' or 'lp' or null
+        let filterClickStart = null;  // {x, time} to distinguish click from drag
+
+        // ===== FILTERS (zero-allocation biquad for animation loop) =====
+        // Pre-allocated reusable buffers to avoid GC pressure during 60fps playback
+        let _filterBufA = null;
+        let _filterBufB = null;
+
+        function _ensureFilterBuf(buf, size) {
+            return (buf && buf.length >= size) ? buf : new Float32Array(size);
+        }
+
+        // Core biquad: writes into pre-allocated output buffer (no allocation)
+        function _biquad(data, out, nChannels, sampleRate, cutoffHz, type) {
+            const nSamples = Math.floor(data.length / nChannels);
+            const w0 = 2 * Math.PI * cutoffHz / sampleRate;
+            const cosw0 = Math.cos(w0);
+            const alpha = Math.sin(w0) / (2 * Math.SQRT2);
+
+            let b0, b1, b2;
+            if (type === 'highpass') {
+                b0 = (1 + cosw0) / 2;
+                b1 = -(1 + cosw0);
+                b2 = (1 + cosw0) / 2;
+            } else {
+                b0 = (1 - cosw0) / 2;
+                b1 = (1 - cosw0);
+                b2 = (1 - cosw0) / 2;
+            }
+            const a0 = 1 + alpha;
+            const a1 = -2 * cosw0;
+            const a2 = 1 - alpha;
+
+            const nb0 = b0 / a0, nb1 = b1 / a0, nb2 = b2 / a0;
+            const na1 = a1 / a0, na2 = a2 / a0;
+
+            for (let ch = 0; ch < nChannels; ch++) {
+                let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+                for (let s = 0; s < nSamples; s++) {
+                    const idx = s * nChannels + ch;
+                    const x0 = data[idx];
+                    const y0 = nb0 * x0 + nb1 * x1 + nb2 * x2 - na1 * y1 - na2 * y2;
+                    out[idx] = y0;
+                    x2 = x1; x1 = x0;
+                    y2 = y1; y1 = y0;
+                }
+            }
+        }
+
+        // Zero-allocation filter path for animation loop
+        // Returns a buffer containing filtered data (may be input data if no filters active)
+        function applyFilters(data, nChannels, sampleRate) {
+            if (!data || data.length === 0) return data;
+            if (!highPassEnabled && !lowPassEnabled) return data;
+
+            const len = data.length;
+            _filterBufA = _ensureFilterBuf(_filterBufA, len);
+            _filterBufB = _ensureFilterBuf(_filterBufB, len);
+
+            if (highPassEnabled && lowPassEnabled) {
+                _biquad(data, _filterBufA, nChannels, sampleRate, highPassFreq, 'highpass');
+                _biquad(_filterBufA, _filterBufB, nChannels, sampleRate, lowPassFreq, 'lowpass');
+                return _filterBufB;
+            } else if (highPassEnabled) {
+                _biquad(data, _filterBufA, nChannels, sampleRate, highPassFreq, 'highpass');
+                return _filterBufA;
+            } else {
+                _biquad(data, _filterBufA, nChannels, sampleRate, lowPassFreq, 'lowpass');
+                return _filterBufA;
+            }
+        }
+
+        // Legacy allocating versions kept for non-animation code (minimap cache, static draws)
+        function applyHighPass(data, nChannels, sampleRate, cutoffHz) {
+            if (!data || data.length === 0) return data;
+            const out = new Float32Array(data.length);
+            _biquad(data, out, nChannels, sampleRate, cutoffHz, 'highpass');
+            return out;
+        }
+
+        function maybeHighPass(data, nChannels, sampleRate) {
+            if (!highPassEnabled || !data) return data;
+            return applyHighPass(data, nChannels, sampleRate, highPassFreq);
+        }
+
+        function applyLowPass(data, nChannels, sampleRate, cutoffHz) {
+            if (!data || data.length === 0) return data;
+            const out = new Float32Array(data.length);
+            _biquad(data, out, nChannels, sampleRate, cutoffHz, 'lowpass');
+            return out;
+        }
+
+        function maybeLowPass(data, nChannels, sampleRate) {
+            if (!lowPassEnabled || !data) return data;
+            return applyLowPass(data, nChannels, sampleRate, lowPassFreq);
+        }
 
         // ===== CHUNK MANAGEMENT =====
 
@@ -381,7 +538,7 @@
             const startByte = Math.floor(start * samplesPerSec * bytesPerSample);
             const endByte = Math.floor(end * samplesPerSec * bytesPerSample);
 
-            console.log(`📦 Fetching chunk ${chunkIndex} (${start}s-${end}s): bytes ${startByte}-${endByte}`);
+            // console.log(`📦 Fetching chunk ${chunkIndex} (${start}s-${end}s): bytes ${startByte}-${endByte}`);
 
             try {
                 const response = await fetch(`${DATA_BASE_URL}/${regionData.file}`, {
@@ -389,7 +546,7 @@
                 });
 
                 if (response.status === 206) {
-                    console.log(`✅ Chunk ${chunkIndex}: 206 Partial Content`);
+                    // console.log(`✅ Chunk ${chunkIndex}: 206 Partial Content`);
                 } else {
                     console.warn(`⚠️ Chunk ${chunkIndex}: ${response.status} (Range not supported?)`);
                 }
@@ -419,6 +576,8 @@
                 }
             }
             document.getElementById('cacheStatus').textContent = `All ${totalChunks} chunks loaded!`;
+            drawMinimap(); // Redraw minimap with all data
+            updateScrubBuffer(); // Refresh scrub audio with complete data
         }
 
         // Get data for a time range (from cache or fetch)
@@ -487,20 +646,71 @@
             return result;
         }
 
-        // Update cache indicator UI
-        function updateCacheIndicator() {
-            const totalChunks = getTotalChunks();
-            if (!totalChunks) return;
+        // Synchronous cache lookup - returns data if all chunks are cached, null otherwise
+        // Reusable buffer for multi-chunk assembly (avoids per-frame allocation)
+        let _cacheSyncBuf = null;
 
-            cacheIndicator.innerHTML = '';
-            for (let i = 0; i < totalChunks; i++) {
-                const bar = document.createElement('div');
-                bar.className = 'chunk-bar';
-                if (chunkCache.has(i)) bar.classList.add('loaded');
-                if (loadingChunks.has(i)) bar.classList.add('loading');
-                bar.title = `Chunk ${i}: ${i * CHUNK_DURATION}s - ${(i + 1) * CHUNK_DURATION}s`;
-                cacheIndicator.appendChild(bar);
+        function getDataFromCacheSync(startSec, endSec) {
+            if (!regionData) return null;
+            if (isUploadedData) {
+                const fullData = chunkCache.get(0);
+                if (!fullData) return null;
+                const offsetStart = Math.floor(startSec * regionData.sample_rate) * regionData.n_channels;
+                const offsetEnd = Math.floor(endSec * regionData.sample_rate) * regionData.n_channels;
+                return fullData.subarray(offsetStart, Math.min(offsetEnd, fullData.length));
             }
+
+            const startChunk = getChunkIndex(startSec);
+            const endChunk = getChunkIndex(Math.max(0, endSec - 0.001));
+
+            // Check all chunks present
+            for (let i = startChunk; i <= endChunk; i++) {
+                if (!chunkCache.has(i)) return null;
+            }
+
+            if (startChunk === endChunk) {
+                // Single chunk: return a zero-copy subarray view
+                const data = chunkCache.get(startChunk);
+                const chunkStart = startChunk * CHUNK_DURATION;
+                const offsetStart = Math.floor((startSec - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+                const offsetEnd = Math.floor((endSec - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+                return data.subarray(offsetStart, Math.min(offsetEnd, data.length));
+            }
+
+            // Multi-chunk: assemble into reusable buffer
+            let totalSize = 0;
+            for (let i = startChunk; i <= endChunk; i++) {
+                const chunkStart = i * CHUNK_DURATION;
+                const chunkEnd = Math.min(chunkStart + CHUNK_DURATION, regionData.duration_seconds);
+                const sliceStart = Math.max(startSec, chunkStart);
+                const sliceEnd = Math.min(endSec, chunkEnd);
+                totalSize += Math.floor((sliceEnd - sliceStart) * regionData.sample_rate) * regionData.n_channels;
+            }
+
+            if (!_cacheSyncBuf || _cacheSyncBuf.length < totalSize) {
+                _cacheSyncBuf = new Float32Array(totalSize);
+            }
+
+            let writeOffset = 0;
+            for (let i = startChunk; i <= endChunk; i++) {
+                const data = chunkCache.get(i);
+                const chunkStart = i * CHUNK_DURATION;
+                const chunkEnd = Math.min(chunkStart + CHUNK_DURATION, regionData.duration_seconds);
+                const sliceStart = Math.max(startSec, chunkStart);
+                const sliceEnd = Math.min(endSec, chunkEnd);
+                const offsetStart = Math.floor((sliceStart - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+                const offsetEnd = Math.floor((sliceEnd - chunkStart) * regionData.sample_rate) * regionData.n_channels;
+                const src = data.subarray(offsetStart, Math.min(offsetEnd, data.length));
+                _cacheSyncBuf.set(src, writeOffset);
+                writeOffset += src.length;
+            }
+            return _cacheSyncBuf.subarray(0, writeOffset);
+        }
+
+        // Update cache indicator (new chunk loaded — invalidate minimap cache)
+        function updateCacheIndicator() {
+            minimapCacheDirty = true;
+            drawMinimap();
         }
 
         // ===== INITIALIZATION =====
@@ -554,8 +764,10 @@
             chunkCache = new Map();
             loadingChunks = new Set();
             isUploadedData = false;
+            minimapCacheDirty = true;
 
             regionData = { ...region };
+            _buildChannelCache(regionData.n_channels);
 
             // Update sensor map image based on region
             const sensorImg = document.getElementById('sensorImg');
@@ -585,22 +797,37 @@
             canvas.height = canvasH * window.devicePixelRatio;
             canvas.style.height = `${canvasH}px`;
 
-            // Setup cache indicator
-            updateCacheIndicator();
+            // Reset playhead state — start at far left
+            currentPlayheadTime = 0;
+            currentViewStart = 0;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
 
-            // Fetch first chunk and draw immediately
+            // Fetch first two chunks and draw immediately
             await fetchChunk(0);
-            await drawTimeRange(0, 5);
+            await fetchChunk(1);
+            await drawTimeRange(0, VIEW_WINDOW);
+            drawPlayhead();
+            drawMinimap();
 
             // Start background fetch of ALL remaining chunks (if auto mode)
             if (preloadMode === 'auto') {
                 fetchAllChunks();
             }
 
-            playBtn.disabled = false;
-            stopBtn.disabled = false;
+            playPauseBtn.disabled = false;
+            loopBtn.disabled = false;
             loadBtn.disabled = false;
             document.getElementById('cacheStatus').textContent = 'Loaded. Streaming chunks.';
+
+            // Initialize scrub worklet (Paul stretch for minimap drag)
+            if (!scrubWorkletReady) {
+                initScrubWorklet().then(() => updateScrubBuffer());
+            } else {
+                updateScrubBuffer();
+            }
         }
 
         // ===== DRAWING =====
@@ -609,19 +836,20 @@
             if (!regionData) return;
 
             const endSec = Math.min(startSec + durationSec, regionData.duration_seconds);
-            const data = await getDataForTimeRange(startSec, endSec);
+            const rawData = await getDataForTimeRange(startSec, endSec);
 
-            if (!data || data.length === 0) {
+            if (!rawData || rawData.length === 0) {
                 status.textContent = `No data for ${startSec.toFixed(1)}s - ${endSec.toFixed(1)}s`;
                 return;
             }
 
             const nChannels = regionData.n_channels;
+            const data = maybeLowPass(maybeHighPass(rawData, nChannels, regionData.sample_rate), nChannels, regionData.sample_rate);
             const nSamples = data.length / nChannels;
             const width = canvas.width;
             const height = canvas.height;
             const channelHeight = height / nChannels;
-            const labelWidth = 70 * window.devicePixelRatio;  // Left margin for labels
+            const labelWidth = 45 * window.devicePixelRatio;  // Left margin for labels
             const waveformWidth = width - labelWidth;
             const displayGain = parseFloat(document.getElementById('gainSlider').value);
 
@@ -713,58 +941,239 @@
             ctx.textAlign = 'right';
             ctx.fillText(`${startSec.toFixed(1)}s - ${endSec.toFixed(1)}s`, width - 10 * window.devicePixelRatio, height - 10 * window.devicePixelRatio);
 
-            // Update current chunk highlight
-            const currentChunk = getChunkIndex(startSec);
-            document.querySelectorAll('.chunk-bar').forEach((bar, i) => {
-                bar.classList.toggle('current', i === currentChunk);
-            });
-
             // Update power spectrum
             drawSpectrum(data, nChannels, regionData.sample_rate);
         }
 
-        // ===== PLAYBACK =====
-        // Play 1000 Hz MEG data at 44100 Hz = 44.1x frequency shift
-        // 10 Hz alpha → 441 Hz (audible!)
-        // 5 seconds of MEG → ~0.11 seconds of audio
+        // ===== MINIMAP =====
 
-        async function playAudio() {
+        // Rebuild the cached minimap waveform image (expensive — only when data/gain/filters change)
+        function rebuildMinimapCache() {
             if (!regionData) return;
+            const container = document.getElementById('minimapContainer');
+            const dpr = window.devicePixelRatio;
+            const w = Math.floor(container.clientWidth * dpr);
+            const h = Math.floor(container.clientHeight * dpr);
 
-            // Get current visible time range from slider
-            const currentTime = parseFloat(seekSlider.value);
-            const startSec = Math.max(0, currentTime - 2.5);
-            const endSec = Math.min(startSec + CHUNK_DURATION, regionData.duration_seconds);
-            const playDuration = endSec - startSec;
-
-            status.textContent = `Loading audio for ${startSec.toFixed(1)}s - ${endSec.toFixed(1)}s...`;
-
-            // Fetch the data for this range (will use cache if available)
-            const data = await getDataForTimeRange(startSec, endSec);
-
-            if (!data || data.length === 0) {
-                status.textContent = 'No data available for this range';
-                return;
+            if (!minimapCacheCanvas || minimapCacheCanvas.width !== w || minimapCacheCanvas.height !== h) {
+                minimapCacheCanvas = document.createElement('canvas');
+                minimapCacheCanvas.width = w;
+                minimapCacheCanvas.height = h;
             }
+            const cctx = minimapCacheCanvas.getContext('2d');
 
+            const totalDuration = regionData.duration_seconds;
             const nChannels = regionData.n_channels;
-            const nSamples = Math.floor(data.length / nChannels);
+            const labelWidth = 45 * dpr;
+            const plotWidth = w - labelWidth;
 
-            if (selectedChannels.size === 0) {
-                status.textContent = 'No channels selected. Click channel labels to select.';
-                return;
+            cctx.fillStyle = '#0a0a1a';
+            cctx.fillRect(0, 0, w, h);
+
+            const channelHeight = h / nChannels;
+            const displayGain = parseFloat(document.getElementById('gainSlider').value);
+            const totalChunks = getTotalChunks();
+
+            // Pre-filter chunks once
+            const filteredChunks = new Map();
+            for (let ci = 0; ci < totalChunks; ci++) {
+                const raw = chunkCache.get(ci);
+                if (raw) filteredChunks.set(ci, maybeLowPass(maybeHighPass(raw, nChannels, regionData.sample_rate), nChannels, regionData.sample_rate));
             }
+
+            for (let ch = 0; ch < nChannels; ch++) {
+                const y = ch * channelHeight + channelHeight / 2;
+                const isSelected = selectedChannels.has(ch);
+                const color = `hsl(${(ch * 360 / nChannels)}, 70%, 60%)`;
+
+                cctx.strokeStyle = isSelected ? color : 'rgba(255,255,255,0.35)';
+                cctx.lineWidth = isSelected ? 1.5 : 0.8;
+
+                for (let ci = 0; ci < totalChunks; ci++) {
+                    const chunkData = filteredChunks.get(ci);
+                    if (!chunkData) continue;
+
+                    const chunkStartSec = ci * CHUNK_DURATION;
+                    const chunkSamples = Math.floor(chunkData.length / nChannels);
+                    const chunkDurationSec = chunkSamples / regionData.sample_rate;
+
+                    const pxStart = Math.floor((chunkStartSec / totalDuration) * plotWidth);
+                    const pxEnd = Math.floor(((chunkStartSec + chunkDurationSec) / totalDuration) * plotWidth);
+                    const pxWidth = Math.max(1, pxEnd - pxStart);
+
+                    cctx.beginPath();
+                    for (let px = 0; px < pxWidth; px++) {
+                        const sampleIdx = Math.floor((px / pxWidth) * chunkSamples);
+                        const dataIdx = sampleIdx * nChannels + ch;
+                        if (dataIdx < chunkData.length) {
+                            const value = chunkData[dataIdx];
+                            const normalized = value / 1e-10 * displayGain;
+                            const yPos = y - normalized * (channelHeight * 0.4);
+                            const clampedY = Math.max(0, Math.min(h, yPos));
+                            if (px === 0) cctx.moveTo(labelWidth + pxStart + px, clampedY);
+                            else cctx.lineTo(labelWidth + pxStart + px, clampedY);
+                        }
+                    }
+                    cctx.stroke();
+                }
+            }
+
+            // Eyes-closed marker at 74s
+            if (totalDuration >= 74) {
+                const markerX = labelWidth + (74 / totalDuration) * plotWidth;
+                cctx.strokeStyle = 'rgba(255,68,68,0.5)';
+                cctx.lineWidth = 1;
+                cctx.beginPath();
+                cctx.moveTo(markerX, 0);
+                cctx.lineTo(markerX, h);
+                cctx.stroke();
+            }
+
+            // Outer border
+            cctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            cctx.lineWidth = 1.5;
+            cctx.strokeRect(labelWidth, 0, plotWidth, h);
+
+            minimapCacheDirty = false;
+        }
+
+        // Fast minimap draw: blit cached waveform + draw overlay (viewport box + playhead)
+        function drawMinimap() {
+            if (!regionData) return;
+            const container = document.getElementById('minimapContainer');
+            const dpr = window.devicePixelRatio;
+            const w = Math.floor(container.clientWidth * dpr);
+            const h = Math.floor(container.clientHeight * dpr);
+
+            if (minimapCanvas.width !== w || minimapCanvas.height !== h) {
+                minimapCanvas.width = w;
+                minimapCanvas.height = h;
+                minimapCacheDirty = true;
+            }
+
+            // Rebuild cache if needed
+            if (minimapCacheDirty || !minimapCacheCanvas) {
+                rebuildMinimapCache();
+            }
+
+            // Blit cached waveform
+            minimapCtx.drawImage(minimapCacheCanvas, 0, 0);
+
+            // --- Overlay (cheap, every frame) ---
+            const totalDuration = regionData.duration_seconds;
+            const labelWidth = 45 * dpr;
+            const plotWidth = w - labelWidth;
+
+            // Viewport box
+            const viewStart = currentViewStart;
+            const viewEnd = Math.min(viewStart + VIEW_WINDOW, totalDuration);
+            const vpLeft = labelWidth + (viewStart / totalDuration) * plotWidth;
+            const vpRight = labelWidth + (viewEnd / totalDuration) * plotWidth;
+
+            // Dim areas outside viewport
+            minimapCtx.fillStyle = 'rgba(0,0,0,0.55)';
+            if (vpLeft > labelWidth) minimapCtx.fillRect(labelWidth, 0, vpLeft - labelWidth, h);
+            if (vpRight < w) minimapCtx.fillRect(vpRight, 0, w - vpRight, h);
+
+            // Viewport highlight fill
+            minimapCtx.fillStyle = 'rgba(95,179,179,0.2)';
+            minimapCtx.fillRect(vpLeft, 0, vpRight - vpLeft, h);
+
+            // Viewport border
+            minimapCtx.strokeStyle = 'rgba(95,179,179,1.0)';
+            minimapCtx.lineWidth = 2.5;
+            minimapCtx.strokeRect(vpLeft, 0, vpRight - vpLeft, h);
+
+            // Playhead line
+            if (currentPlayheadTime !== null) {
+                const phX = labelWidth + (currentPlayheadTime / totalDuration) * plotWidth;
+                minimapCtx.strokeStyle = '#ff4444';
+                minimapCtx.lineWidth = 2;
+                minimapCtx.beginPath();
+                minimapCtx.moveTo(phX, 0);
+                minimapCtx.lineTo(phX, h);
+                minimapCtx.stroke();
+            }
+        }
+
+        // ===== PLAYHEAD =====
+
+        function drawPlayhead() {
+            if (currentPlayheadTime === null || !regionData) return;
+
+            const dpr = window.devicePixelRatio;
+            const width = canvas.width;
+            const height = canvas.height;
+            const labelWidth = 45 * dpr;
+            const waveformWidth = width - labelWidth;
+
+            // Is playhead within current view?
+            const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, regionData.duration_seconds);
+            if (currentPlayheadTime < currentViewStart || currentPlayheadTime > viewEnd) return;
+
+            const relativePos = (currentPlayheadTime - currentViewStart) / (viewEnd - currentViewStart);
+            const phX = labelWidth + relativePos * waveformWidth;
+
+            // Red vertical line
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(phX, 0);
+            ctx.lineTo(phX, height);
+            ctx.stroke();
+
+            // Small triangle cap at top
+            ctx.fillStyle = '#ff4444';
+            ctx.beginPath();
+            ctx.moveTo(phX - 5 * dpr, 0);
+            ctx.lineTo(phX + 5 * dpr, 0);
+            ctx.lineTo(phX, 8 * dpr);
+            ctx.closePath();
+            ctx.fill();
+
+            // Time label at upper right of playhead
+            ctx.fillStyle = '#ff4444';
+            ctx.font = `${13 * dpr}px 'IBM Plex Mono', monospace`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`${currentPlayheadTime.toFixed(1)}s`, phX + 8 * dpr, 10 * dpr);
+        }
+
+        // ===== MONO BUFFER =====
+        // Build a normalized mono mix from cached chunks + selected channels
+        function buildMonoBuffer() {
+            if (!regionData || selectedChannels.size === 0) return null;
+
+            const totalDuration = regionData.duration_seconds;
+            const totalSamples = Math.floor(totalDuration * regionData.sample_rate);
+            const nChannels = regionData.n_channels;
             const activeChannels = [...selectedChannels];
             const nActive = activeChannels.length;
 
-            const mono = new Float32Array(nSamples);
-            for (let s = 0; s < nSamples; s++) {
-                let sum = 0;
-                for (let i = 0; i < nActive; i++) {
-                    sum += data[s * nChannels + activeChannels[i]];
+            const mono = new Float32Array(totalSamples);
+            let samplesWritten = 0;
+
+            const totalChunks = getTotalChunks();
+            for (let ci = 0; ci < totalChunks; ci++) {
+                const chunkData = chunkCache.get(ci);
+                if (!chunkData) continue;
+                const chunkSamples = Math.floor(chunkData.length / nChannels);
+                const writeStart = ci * CHUNK_DURATION * regionData.sample_rate;
+
+                for (let s = 0; s < chunkSamples; s++) {
+                    let sum = 0;
+                    for (let i = 0; i < nActive; i++) {
+                        sum += chunkData[s * nChannels + activeChannels[i]];
+                    }
+                    const idx = writeStart + s;
+                    if (idx < totalSamples) {
+                        mono[idx] = sum / nActive;
+                        samplesWritten++;
+                    }
                 }
-                mono[s] = sum / nActive;
             }
+
+            if (samplesWritten === 0) return null;
 
             // Normalize to [-1, 1]
             let maxAbs = 0;
@@ -778,90 +1187,607 @@
                 }
             }
 
-            // Create audio context and buffer
+            return mono;
+        }
+
+        // ===== SCRUB AUDIO (Paul Stretch) =====
+
+        async function ensureAudioContext() {
             if (!audioContext) {
                 audioContext = new AudioContext();
             }
+            return audioContext;
+        }
 
-            // Create buffer at 44100 Hz - this is the key trick!
-            // 1000 Hz data played at 44100 Hz = 44.1x speedup
-            const audioBuffer = audioContext.createBuffer(1, nSamples, 44100);
+        async function initScrubWorklet() {
+            const ctx = await ensureAudioContext();
+            try {
+                await ctx.audioWorklet.addModule('workers/paul-stretch-processor.js');
+            } catch (e) {
+                // Already registered — that's fine
+            }
+
+            scrubWorkletNode = new AudioWorkletNode(ctx, 'paul-stretch-processor', {
+                processorOptions: { windowSize: 4096, stretchFactor: 100 }
+            });
+
+            // Scrub filter chain: worklet → HP → LP → gain → destination
+            scrubHPFilter = ctx.createBiquadFilter();
+            scrubHPFilter.type = 'highpass';
+            scrubHPFilter.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
+            scrubHPFilter.Q.value = Math.SQRT1_2;
+
+            scrubLPFilter = ctx.createBiquadFilter();
+            scrubLPFilter.type = 'lowpass';
+            scrubLPFilter.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+            scrubLPFilter.Q.value = Math.SQRT1_2;
+
+            scrubGainNode = ctx.createGain();
+            scrubGainNode.gain.value = 0; // Start silent
+
+            scrubWorkletNode.connect(scrubHPFilter);
+            scrubHPFilter.connect(scrubLPFilter);
+            scrubLPFilter.connect(scrubGainNode);
+            scrubGainNode.connect(ctx.destination);
+
+            scrubWorkletReady = true;
+        }
+
+        function updateScrubBuffer() {
+            if (!scrubWorkletReady || !scrubWorkletNode) return;
+            const mono = buildMonoBuffer();
+            if (!mono) return;
+            scrubMonoBuffer = mono;
+            // Send a copy so the main thread retains its buffer
+            const copy = new Float32Array(mono);
+            scrubWorkletNode.port.postMessage({
+                type: 'load-audio',
+                data: { samples: Array.from(copy) }
+            });
+        }
+
+        function startScrubAt(megTime) {
+            if (!scrubWorkletReady || !scrubMonoBuffer) return;
+            const audioPosSec = megTime / 44.1;
+
+            // Update filters to match current settings
+            scrubHPFilter.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
+            scrubLPFilter.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+
+            scrubWorkletNode.port.postMessage({ type: 'seek', data: { position: audioPosSec } });
+            scrubWorkletNode.port.postMessage({ type: 'play' });
+
+            // Fade in
+            const ctx = audioContext;
+            scrubGainNode.gain.cancelScheduledValues(ctx.currentTime);
+            scrubGainNode.gain.setValueAtTime(scrubGainNode.gain.value, ctx.currentTime);
+            scrubGainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05);
+        }
+
+        function seekScrubTo(megTime) {
+            if (!scrubWorkletReady || !scrubMonoBuffer) return;
+            const audioPosSec = megTime / 44.1;
+            // Lightweight position update — no buffer reset, no fading.
+            // The stretch algorithm naturally picks up from the new location.
+            scrubWorkletNode.port.postMessage({ type: 'set-position', data: { position: audioPosSec } });
+        }
+
+        function stopScrub() {
+            if (!scrubWorkletReady || !scrubWorkletNode) return;
+            const ctx = audioContext;
+            scrubGainNode.gain.cancelScheduledValues(ctx.currentTime);
+            scrubGainNode.gain.setValueAtTime(scrubGainNode.gain.value, ctx.currentTime);
+            scrubGainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
+            // Pause after fade-out
+            setTimeout(() => {
+                if (scrubWorkletNode) {
+                    scrubWorkletNode.port.postMessage({ type: 'pause' });
+                }
+            }, 60);
+        }
+
+        // ===== PLAYBACK =====
+        // Play 1000 Hz MEG data at 44100 Hz = 44.1x frequency shift
+        // 10 Hz alpha → 441 Hz (audible!)
+        // 133 seconds of MEG → ~3 seconds of audio
+
+        async function playAudio() {
+            if (!regionData) return;
+
+            console.log(`[playAudio] ENTER — currentPlayheadTime=${currentPlayheadTime}, duration=${regionData.duration_seconds}, isPlaying=${isPlaying}`);
+
+            // If playhead is at the end, restart from beginning
+            if (currentPlayheadTime !== null && currentPlayheadTime >= regionData.duration_seconds - 0.01) {
+                console.log(`[playAudio] Playhead at end (${currentPlayheadTime} >= ${regionData.duration_seconds - 0.01}), resetting to 0`);
+                currentPlayheadTime = 0;
+                currentViewStart = 0;
+            }
+
+            if (selectedChannels.size === 0) {
+                status.textContent = 'No channels selected. Click channel labels to select.';
+                return;
+            }
+
+            // Build mono buffer from cached chunks
+            const mono = buildMonoBuffer();
+            if (!mono) {
+                status.textContent = 'No data loaded yet. Wait for chunks to load.';
+                return;
+            }
+            const totalSamples = mono.length;
+
+            await ensureAudioContext();
+
+            // Create buffer at 44100 Hz - 1000 Hz data → 44.1x speedup
+            const audioBuffer = audioContext.createBuffer(1, totalSamples, 44100);
             audioBuffer.copyToChannel(mono, 0);
 
-            // Play it
+            // Stop any existing playback
             if (audioSource) {
                 audioSource.stop();
             }
             audioSource = audioContext.createBufferSource();
             audioSource.buffer = audioBuffer;
-            audioSource.connect(audioContext.destination);
-            audioSource.start();
+
+            // Route through gain node for fade-in/out
+            gainNode = audioContext.createGain();
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + FADE_MS / 1000);
+            // High-pass filter node (Web Audio biquad)
+            highPassFilterNode = audioContext.createBiquadFilter();
+            highPassFilterNode.type = 'highpass';
+            highPassFilterNode.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
+            highPassFilterNode.Q.value = Math.SQRT1_2; // Butterworth Q
+
+            // Low-pass filter node (Web Audio biquad)
+            lowPassFilterNode = audioContext.createBiquadFilter();
+            lowPassFilterNode.type = 'lowpass';
+            lowPassFilterNode.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+            lowPassFilterNode.Q.value = Math.SQRT1_2;
+
+            audioSource.connect(highPassFilterNode);
+            highPassFilterNode.connect(lowPassFilterNode);
+            lowPassFilterNode.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Start from current playhead position (or beginning)
+            const startMegTime = currentPlayheadTime !== null ? currentPlayheadTime : 0;
+            const audioOffsetSec = startMegTime / 44.1; // Convert MEG-time to audio-time
+            const bufferDuration = audioBuffer.duration;
+            console.log(`[playAudio] startMegTime=${startMegTime.toFixed(4)}, audioOffsetSec=${audioOffsetSec.toFixed(4)}, bufferDuration=${bufferDuration.toFixed(4)}, remaining=${(bufferDuration - audioOffsetSec).toFixed(4)}s`);
+            audioSource.start(0, audioOffsetSec);
+
+            // Record timing references
+            playStartWallTime = audioContext.currentTime;
+            playStartDataOffset = startMegTime;
 
             isPlaying = true;
-            playBtn.textContent = 'Playing...';
+            playPauseBtn.textContent = '⏸️ Pause';
+            playPauseBtn.classList.add('play-active');
 
-            const audioDuration = nSamples / 44100;
-            status.textContent = `Playing ${playDuration.toFixed(1)}s of MEG (${startSec.toFixed(1)}s-${endSec.toFixed(1)}s) as ${(audioDuration * 1000).toFixed(0)}ms audio (44.1× speedup)`;
+            const audioDuration = (totalSamples / 44100) - audioOffsetSec;
+            status.textContent = `Playing from ${startMegTime.toFixed(1)}s (${(audioDuration).toFixed(1)}s audio at 44.1× speedup)`;
+
+            // Start animation loop
+            animationTick();
 
             audioSource.onended = () => {
+                console.log(`[onended] FIRED — isPlaying=${isPlaying}, currentPlayheadTime=${currentPlayheadTime}, isLooping=${isLooping}`);
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+
+                // If still marked as playing, this is a natural end-of-track
+                // (pauseAudio nulls onended before stopping, so this can't be a manual pause)
+                const dur = regionData ? regionData.duration_seconds : 0;
+                if (isPlaying) {
+                    currentPlayheadTime = dur;
+                    currentViewStart = Math.max(0, dur - VIEW_WINDOW);
+                    const data = getDataFromCacheSync(currentViewStart, dur);
+                    if (data && data.length > 0) {
+                        drawTimeRangeSync(currentViewStart, VIEW_WINDOW, data);
+                        drawPlayhead();
+                    }
+                }
+
                 isPlaying = false;
-                playBtn.textContent = 'Play';
-                status.textContent = 'Playback complete.';
+                playPauseBtn.textContent = '▶️ Play';
+                playPauseBtn.classList.remove('play-active');
+                drawMinimap();
+                if (isLooping) {
+                    currentPlayheadTime = 0;
+                    currentViewStart = 0;
+                    playAudio();
+                } else {
+                    status.textContent = 'Playback complete.';
+                }
             };
         }
 
-        function stopAudio() {
-            if (audioSource) {
-                audioSource.stop();
-                audioSource = null;
+        // ===== ANIMATION LOOP =====
+
+        let spectrumThrottle = 0;
+
+        function animationTick() {
+            if (!isPlaying || !regionData) return;
+
+            // Calculate current MEG-time from AudioContext
+            const wallElapsed = audioContext.currentTime - playStartWallTime;
+            const megTime = playStartDataOffset + wallElapsed * 44.1;
+            const totalDuration = regionData.duration_seconds;
+
+            if (megTime >= totalDuration) {
+                // Playback reached end — draw final frame, then stop
+                console.log(`[animationTick] END OF TRACK — megTime=${megTime.toFixed(4)}, totalDuration=${totalDuration.toFixed(4)}, wallElapsed=${wallElapsed.toFixed(4)}`);
+                currentPlayheadTime = totalDuration;
+                currentViewStart = Math.max(0, totalDuration - VIEW_WINDOW);
+                const viewEnd = totalDuration;
+                const data = getDataFromCacheSync(currentViewStart, viewEnd);
+                if (data && data.length > 0) {
+                    drawTimeRangeSync(currentViewStart, VIEW_WINDOW, data);
+                    drawPlayhead();
+                }
+
+                // Detach onended before stopping so it doesn't interfere
+                if (audioSource) audioSource.onended = null;
+                isPlaying = false;
+                playPauseBtn.textContent = '▶️ Play';
+                playPauseBtn.classList.remove('play-active');
+                drawMinimap();
+                if (isLooping) {
+                    currentPlayheadTime = 0;
+                    currentViewStart = 0;
+                    playAudio();
+                }
+                return;
+            }
+
+            currentPlayheadTime = megTime;
+
+            // Three-phase viewport calculation
+            const halfWindow = VIEW_WINDOW / 2;
+            if (megTime < halfWindow) {
+                // Lead-in: window fixed at start, playhead moves left→center
+                currentViewStart = 0;
+            } else if (megTime > totalDuration - halfWindow) {
+                // Lead-out: window fixed at end, playhead moves center→right
+                currentViewStart = totalDuration - VIEW_WINDOW;
+            } else {
+                // Scrolling: playhead at center, window slides
+                currentViewStart = megTime - halfWindow;
+            }
+            currentViewStart = Math.max(0, currentViewStart);
+
+            // Get data from cache synchronously
+            const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, totalDuration);
+            const data = getDataFromCacheSync(currentViewStart, viewEnd);
+
+            if (data && data.length > 0) {
+                // Filter once, reuse for both waveform and spectrum
+                const filteredData = applyFilters(data, regionData.n_channels, regionData.sample_rate);
+
+                drawTimeRangeSync(currentViewStart, VIEW_WINDOW, filteredData, true);
+                drawPlayhead();
+
+                // Throttle spectrum to ~10fps
+                spectrumThrottle++;
+                if (spectrumThrottle % 6 === 0) {
+                    drawSpectrum(filteredData, regionData.n_channels, regionData.sample_rate);
+                }
+            }
+
+            // Redraw minimap (viewport box + playhead position)
+            drawMinimap();
+
+            animationFrameId = requestAnimationFrame(animationTick);
+        }
+
+        // Synchronous version of drawTimeRange that takes pre-filtered data
+        // If preFiltered=true, data is already filtered — skip filter step
+        // Pre-computed channel colors (built once per region load)
+        let _channelColors = [];
+        let _channelShortNames = [];
+        let _cachedGainSlider = null;
+
+        function _buildChannelCache(nChannels) {
+            _channelColors = new Array(nChannels);
+            _channelShortNames = new Array(nChannels);
+            for (let ch = 0; ch < nChannels; ch++) {
+                _channelColors[ch] = `hsl(${(ch * 360 / nChannels)}, 70%, 60%)`;
+                const chName = regionData.channels?.[ch] || `CH${ch}`;
+                _channelShortNames[ch] = chName.replace('MEG', '');
+            }
+            _cachedGainSlider = document.getElementById('gainSlider');
+        }
+
+        function drawTimeRangeSync(startSec, durationSec, rawData, preFiltered) {
+            if (!regionData || !rawData || rawData.length === 0) return;
+
+            const endSec = Math.min(startSec + durationSec, regionData.duration_seconds);
+            const nChannels = regionData.n_channels;
+            const data = preFiltered ? rawData : maybeLowPass(maybeHighPass(rawData, nChannels, regionData.sample_rate), nChannels, regionData.sample_rate);
+            const nSamples = data.length / nChannels;
+            const dpr = window.devicePixelRatio;
+            const width = canvas.width;
+            const height = canvas.height;
+            const channelHeight = height / nChannels;
+            const labelWidth = 45 * dpr;
+            const waveformWidth = width - labelWidth;
+            const displayGain = parseFloat((_cachedGainSlider || document.getElementById('gainSlider')).value);
+            const gainScale = displayGain / 1e-10;
+            const halfChanH = channelHeight * 0.4;
+
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Ensure channel cache is built
+            if (_channelColors.length !== nChannels) _buildChannelCache(nChannels);
+
+            const fontNormal = `${10 * dpr}px monospace`;
+            const fontBold = `bold ${10 * dpr}px monospace`;
+            const samplesPerPixel = nSamples / waveformWidth;
+
+            for (let ch = 0; ch < nChannels; ch++) {
+                const y = ch * channelHeight + channelHeight / 2;
+                const color = _channelColors[ch];
+                const isSelected = selectedChannels.has(ch);
+
+                ctx.fillStyle = isSelected ? color : '#555';
+                ctx.font = isSelected ? fontBold : fontNormal;
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(_channelShortNames[ch], labelWidth - 15 * dpr, y);
+
+                ctx.strokeStyle = isSelected ? color : 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = isSelected ? 1.5 : 1;
+                ctx.beginPath();
+
+                for (let px = 0; px < waveformWidth; px++) {
+                    const sampleIdx = Math.floor(px * samplesPerPixel);
+                    const dataIdx = sampleIdx * nChannels + ch;
+                    if (dataIdx < data.length) {
+                        const yPos = y - data[dataIdx] * gainScale * halfChanH;
+                        if (px === 0) ctx.moveTo(labelWidth, yPos);
+                        else ctx.lineTo(labelWidth + px, yPos);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Eyes-closed marker
+            if (startSec <= 74 && endSec >= 74) {
+                const markerX = labelWidth + ((74 - startSec) / durationSec) * waveformWidth;
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(markerX, 0);
+                ctx.lineTo(markerX, height);
+                ctx.stroke();
+                ctx.fillStyle = '#ff4444';
+                ctx.font = `${12 * dpr}px sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.fillText('Eyes Closed', markerX + 5, 15 * dpr);
+            }
+
+            // Time range label
+            ctx.fillStyle = '#666';
+            ctx.font = `${11 * dpr}px monospace`;
+            ctx.textAlign = 'right';
+            ctx.fillText(`${startSec.toFixed(1)}s - ${endSec.toFixed(1)}s`, width - 10 * dpr, height - 10 * dpr);
+        }
+
+        function pauseAudio() {
+            console.log(`[pauseAudio] ENTER — isPlaying=${isPlaying}, currentPlayheadTime=${currentPlayheadTime}`);
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
             }
             isPlaying = false;
-            playBtn.textContent = 'Play';
+            playPauseBtn.textContent = '▶️ Play';
+            playPauseBtn.classList.remove('play-active');
+            drawMinimap();
+
+            if (audioSource) {
+                audioSource.onended = null;  // Prevent stale callback
+                if (gainNode && audioContext) {
+                    // Fade out over 25ms, then stop
+                    gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + FADE_MS / 1000);
+                    const src = audioSource;
+                    setTimeout(() => { try { src.stop(); } catch(e) {} }, FADE_MS);
+                } else {
+                    audioSource.stop();
+                }
+                audioSource = null;
+                gainNode = null;
+            }
+        }
+
+        function togglePlayPause() {
+            console.log(`[togglePlayPause] isPlaying=${isPlaying}, currentPlayheadTime=${currentPlayheadTime}`);
+            if (isPlaying) {
+                pauseAudio();
+            } else {
+                playAudio();
+            }
         }
 
         // ===== EVENT LISTENERS =====
 
         loadBtn.addEventListener('click', loadRegion);
-        playBtn.addEventListener('click', playAudio);
-        stopBtn.addEventListener('click', stopAudio);
+        playPauseBtn.addEventListener('click', (e) => {
+            e.target.blur();
+            togglePlayPause();
+        });
+        loopBtn.addEventListener('click', (e) => {
+            e.target.blur();
+            isLooping = !isLooping;
+            loopBtn.textContent = isLooping ? '🔁 Loop ON' : '🔁 Loop';
+            loopBtn.classList.toggle('loop-active', isLooping);
+        });
 
-        // Channel selection via canvas click
-        canvas.addEventListener('click', (e) => {
+        // Spacebar toggles play/pause, L toggles loop (always, regardless of focus)
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                document.activeElement?.blur();
+                togglePlayPause();
+            } else if (e.key === 'l' || e.key === 'L') {
+                if (e.target.matches('input, select, textarea')) return;
+                isLooping = !isLooping;
+                loopBtn.textContent = isLooping ? '🔁 Loop ON' : '🔁 Loop';
+                loopBtn.classList.toggle('loop-active', isLooping);
+            }
+        });
+
+        // Channel selection (label area) and click-to-seek (waveform area)
+        canvas.addEventListener('click', async (e) => {
             if (!regionData) return;
             const rect = canvas.getBoundingClientRect();
             const clickY = (e.clientY - rect.top) * window.devicePixelRatio;
             const nChannels = regionData.n_channels;
             const height = canvas.height;
             const channelHeight = height / nChannels;
-            const labelWidth = 70 * window.devicePixelRatio;
+            const labelWidth = 45 * window.devicePixelRatio;
             const clickX = (e.clientX - rect.left) * window.devicePixelRatio;
 
-            // Only respond to clicks in the label area
-            if (clickX > labelWidth) return;
+            if (clickX <= labelWidth) {
+                // Label area: toggle channel selection
+                const ch = Math.floor(clickY / channelHeight);
+                if (ch < 0 || ch >= nChannels) return;
 
-            const ch = Math.floor(clickY / channelHeight);
-            if (ch < 0 || ch >= nChannels) return;
+                if (selectedChannels.has(ch)) {
+                    selectedChannels.delete(ch);
+                } else {
+                    selectedChannels.add(ch);
+                }
 
-            if (selectedChannels.has(ch)) {
-                selectedChannels.delete(ch);
+                // Redraw with current view
+                minimapCacheDirty = true;
+                await drawTimeRange(currentViewStart, VIEW_WINDOW);
+                drawPlayhead();
+                drawMinimap();
+
+                // If playing, rebuild audio with updated channel mix
+                if (isPlaying) {
+                    pauseAudio();
+                    playAudio();
+                }
+                // Update scrub buffer with new channel selection
+                updateScrubBuffer();
             } else {
-                selectedChannels.add(ch);
-            }
+                // Waveform area: click-to-seek
+                const waveformWidth = canvas.width - labelWidth;
+                const relX = (clickX - labelWidth) / waveformWidth;
+                const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, regionData.duration_seconds);
+                const clickedTime = currentViewStart + relX * (viewEnd - currentViewStart);
 
-            // Redraw to update label appearance
-            const time = parseFloat(seekSlider.value);
-            const startSec = Math.max(0, time - 2.5);
-            drawTimeRange(startSec, 5);
+                currentPlayheadTime = Math.max(0, Math.min(clickedTime, regionData.duration_seconds));
+
+                if (isPlaying) {
+                    // Restart audio from new position
+                    pauseAudio();
+                    playAudio();
+                } else {
+                    // Center view on clicked time and redraw
+                    navigateToTime(currentPlayheadTime);
+                }
+            }
         });
 
-        // Pointer cursor over label area
+        // Pointer cursor over label area, crosshair over waveform
         canvas.addEventListener('mousemove', (e) => {
             if (!regionData) return;
             const rect = canvas.getBoundingClientRect();
             const clickX = (e.clientX - rect.left) * window.devicePixelRatio;
-            const labelWidth = 70 * window.devicePixelRatio;
-            canvas.style.cursor = clickX <= labelWidth ? 'pointer' : 'default';
+            const labelWidth = 45 * window.devicePixelRatio;
+            canvas.style.cursor = clickX <= labelWidth ? 'pointer' : 'crosshair';
         });
+
+        // Minimap click & drag: scrub playhead across the recording
+        let minimapDragging = false;
+        let minimapWasPlaying = false;
+
+        function minimapScrub(e) {
+            if (!regionData) return;
+            const rect = minimapCanvas.getBoundingClientRect();
+            const labelWidthCSS = 45;  // Match label area in CSS pixels
+            const plotWidthCSS = rect.width - labelWidthCSS;
+            const clickX = Math.max(0, Math.min(e.clientX - rect.left - labelWidthCSS, plotWidthCSS));
+            const totalDuration = regionData.duration_seconds;
+
+            const scrubTime = (clickX / plotWidthCSS) * totalDuration;
+            currentPlayheadTime = Math.max(0, Math.min(scrubTime, totalDuration));
+
+            // Navigate synchronously using cached data for responsiveness
+            const halfWindow = VIEW_WINDOW / 2;
+            if (currentPlayheadTime < halfWindow) {
+                currentViewStart = 0;
+            } else if (currentPlayheadTime > totalDuration - halfWindow) {
+                currentViewStart = Math.max(0, totalDuration - VIEW_WINDOW);
+            } else {
+                currentViewStart = currentPlayheadTime - halfWindow;
+            }
+
+            const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, totalDuration);
+            const data = getDataFromCacheSync(currentViewStart, viewEnd);
+            if (data && data.length > 0) {
+                const filteredData = applyFilters(data, regionData.n_channels, regionData.sample_rate);
+                drawTimeRangeSync(currentViewStart, VIEW_WINDOW, filteredData, true);
+                drawPlayhead();
+                drawSpectrum(filteredData, regionData.n_channels, regionData.sample_rate);
+            }
+            drawMinimap();
+        }
+
+        minimapCanvas.addEventListener('mousedown', (e) => {
+            if (!regionData) return;
+            minimapDragging = true;
+            minimapWasPlaying = isPlaying;
+            if (isPlaying) pauseAudio();
+            minimapScrub(e);
+            // Start scrub audio at this position
+            startScrubAt(currentPlayheadTime);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!minimapDragging) return;
+            minimapScrub(e);
+            // Seek scrub audio to new position
+            seekScrubTo(currentPlayheadTime);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (minimapDragging) {
+                stopScrub();
+                if (minimapWasPlaying) {
+                    playAudio();
+                }
+            }
+            minimapDragging = false;
+            minimapWasPlaying = false;
+        });
+
+        // Navigate to a specific time: center view and redraw
+        async function navigateToTime(megTime) {
+            if (!regionData) return;
+            const totalDuration = regionData.duration_seconds;
+            const halfWindow = VIEW_WINDOW / 2;
+
+            if (megTime < halfWindow) {
+                currentViewStart = 0;
+            } else if (megTime > totalDuration - halfWindow) {
+                currentViewStart = Math.max(0, totalDuration - VIEW_WINDOW);
+            } else {
+                currentViewStart = megTime - halfWindow;
+            }
+
+            await drawTimeRange(currentViewStart, VIEW_WINDOW);
+            drawPlayhead();
+            drawMinimap();
+        }
 
         // Preload mode toggle
         preloadToggle.addEventListener('click', () => {
@@ -873,34 +1799,8 @@
                 preloadMode = 'auto';
                 preloadToggle.textContent = 'Preload: Auto';
                 preloadToggle.style.background = '#4a7a5a';
-                // If we have region data, start prefetching
                 if (regionData && !isUploadedData) {
                     fetchAllChunks();
-                }
-            }
-        });
-
-        // Seek slider - draw from cache (loading happens in background)
-        seekSlider.addEventListener('input', async () => {
-            const time = parseFloat(seekSlider.value);
-            currentTimeEl.textContent = `${time.toFixed(2)}s`;
-
-            const startSec = Math.max(0, time - 2.5);
-            const endSec = Math.min(startSec + 5, regionData?.duration_seconds || 133);
-
-            // Draw (will use cache if available, fetch if not)
-            await drawTimeRange(startSec, 5);
-
-            // Prefetch adjacent chunks (non-blocking)
-            if (preloadMode === 'ondemand' && regionData && !isUploadedData) {
-                const currentChunk = getChunkIndex(time);
-                const totalChunks = getTotalChunks();
-                // Prefetch next 2 chunks and previous 1 chunk
-                for (let offset = -1; offset <= PREFETCH_AHEAD; offset++) {
-                    const chunkIdx = currentChunk + offset;
-                    if (chunkIdx >= 0 && chunkIdx < totalChunks && !chunkCache.has(chunkIdx) && !loadingChunks.has(chunkIdx)) {
-                        fetchChunk(chunkIdx);  // Fire and forget
-                    }
                 }
             }
         });
@@ -908,16 +1808,18 @@
         // Gain slider - redraw waveform with new amplitude
         const gainSlider = document.getElementById('gainSlider');
         const gainValueEl = document.getElementById('gainValue');
-        gainSlider.addEventListener('input', () => {
+        gainSlider.addEventListener('input', async () => {
             const gain = parseFloat(gainSlider.value);
             gainValueEl.textContent = gain.toFixed(2);
-            // Redraw with current view
             if (regionData) {
-                const time = parseFloat(seekSlider.value);
-                const startSec = Math.max(0, time - 2.5);
-                drawTimeRange(startSec, 5);
+                minimapCacheDirty = true;
+                await drawTimeRange(currentViewStart, VIEW_WINDOW);
+                drawPlayhead();
+                drawMinimap();
             }
         });
+
+        // Filter controls now live on the spectrum plot — see spectrum mouse handlers below
 
         /*
         ============================================================
@@ -1051,6 +1953,7 @@
                 sample_rate: uploadedSampleRate,
                 duration_seconds: nSamples / uploadedSampleRate,
             };
+            _buildChannelCache(nChannels);
             info.innerHTML = `
                 <strong>Uploaded Data</strong><br>
                 Channels: ${nChannels} | Duration: ${regionData.duration_seconds.toFixed(1)}s | Sample rate: ${uploadedSampleRate} Hz
@@ -1108,6 +2011,11 @@
 
         // Compute power spectrum from time-interleaved data
         // Returns { freqs: Float64Array, power: Float64Array } in original MEG Hz
+        // Pre-allocated FFT buffers to avoid per-call allocation
+        let _fftRe = null, _fftIm = null, _fftMono = null;
+        let _fftPower = null, _fftFreqs = null;
+        let _fftSize = 0;
+
         function computeSpectrum(data, nChannels, sampleRate) {
             if (selectedChannels.size === 0) return null;
 
@@ -1115,72 +2023,189 @@
             const activeChannels = [...selectedChannels];
             const nActive = activeChannels.length;
 
+            // Determine FFT size (next power of 2)
+            let fftSize = 1;
+            while (fftSize < nSamples) fftSize <<= 1;
+
+            // Re-allocate buffers only when FFT size changes
+            if (fftSize !== _fftSize) {
+                _fftSize = fftSize;
+                _fftRe = new Float64Array(fftSize);
+                _fftIm = new Float64Array(fftSize);
+                _fftMono = new Float64Array(nSamples);
+                _fftPower = new Float64Array(fftSize / 2);
+                _fftFreqs = new Float64Array(fftSize / 2);
+            } else {
+                // Zero out (re may have leftover from last call, im must be zero)
+                _fftRe.fill(0);
+                _fftIm.fill(0);
+            }
+
+            // Ensure mono buffer is large enough
+            if (!_fftMono || _fftMono.length < nSamples) {
+                _fftMono = new Float64Array(nSamples);
+            }
+
             // Average selected channels into mono
-            const mono = new Float64Array(nSamples);
             for (let s = 0; s < nSamples; s++) {
                 let sum = 0;
                 for (let i = 0; i < nActive; i++) {
                     sum += data[s * nChannels + activeChannels[i]];
                 }
-                mono[s] = sum / nActive;
+                _fftMono[s] = sum / nActive;
             }
 
-            // Pad to next power of 2
-            let fftSize = 1;
-            while (fftSize < nSamples) fftSize <<= 1;
-
-            // Apply Hann window and copy to FFT buffers
-            const re = new Float64Array(fftSize);
-            const im = new Float64Array(fftSize);
+            // Apply Hann window into FFT real buffer
             for (let i = 0; i < nSamples; i++) {
-                const window = 0.5 * (1 - Math.cos(2 * Math.PI * i / (nSamples - 1)));
-                re[i] = mono[i] * window;
+                const w = 0.5 * (1 - Math.cos(2 * Math.PI * i / (nSamples - 1)));
+                _fftRe[i] = _fftMono[i] * w;
             }
 
-            fft(re, im);
+            fft(_fftRe, _fftIm);
 
             // Power spectrum (magnitude squared), only positive frequencies
             const nBins = fftSize / 2;
-            const power = new Float64Array(nBins);
-            const freqs = new Float64Array(nBins);
             const freqRes = sampleRate / fftSize;
 
             for (let i = 0; i < nBins; i++) {
-                freqs[i] = i * freqRes;  // Already in original MEG Hz
-                power[i] = re[i] * re[i] + im[i] * im[i];
+                _fftFreqs[i] = i * freqRes;
+                _fftPower[i] = _fftRe[i] * _fftRe[i] + _fftIm[i] * _fftIm[i];
             }
 
             // Convert to dB
             let maxPower = 0;
             for (let i = 1; i < nBins; i++) {
-                if (power[i] > maxPower) maxPower = power[i];
+                if (_fftPower[i] > maxPower) maxPower = _fftPower[i];
             }
             if (maxPower > 0) {
                 for (let i = 0; i < nBins; i++) {
-                    power[i] = 10 * Math.log10(power[i] / maxPower + 1e-12);
+                    _fftPower[i] = 10 * Math.log10(_fftPower[i] / maxPower + 1e-12);
                 }
             }
 
-            return { freqs, power, nBins, freqRes };
+            return { freqs: _fftFreqs, power: _fftPower, nBins, freqRes };
         }
 
         // Cached spectrum state for hover interaction
         let lastSpectrumState = null;
         let spectrumHoverX = -1;
 
+        // Offscreen cache for spectrum base layer (grid + curve, no filter overlay)
+        let _spectrumBaseCanvas = null;
+        let _spectrumBaseDirty = true;
+
+        // Lightweight redraw: blit cached spectrum base + redraw filter overlay only
+        // Used during filter drag to avoid recomputing FFT
+        function redrawSpectrumOverlay() {
+            if (!_spectrumBaseCanvas || !lastSpectrumState) return;
+            const s = lastSpectrumState;
+            specCtx.drawImage(_spectrumBaseCanvas, 0, 0);
+            drawFilterOverlay(specCtx, s.pad, s.plotW, s.plotH, s.w, s.h, s.dpr, s.freqToX, s.handleTrackH);
+            if (spectrumHoverX >= 0) drawSpectrumHover(spectrumHoverVisible);
+        }
+
+        // Draw filter handles and shaded rejection regions on spectrum
+        function drawFilterOverlay(ctx, pad, plotW, plotH, w, h, dpr, freqToX, handleTrackH) {
+            const trackY = 0;
+            const trackH = handleTrackH;
+            const handleW = 6 * dpr;
+            const handleH = trackH - 2 * dpr;
+            const handleR = 3 * dpr;
+
+            // --- Shaded rejection regions on the plot area ---
+            if (highPassEnabled) {
+                const hpX = freqToX(highPassFreq);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.fillRect(pad.left, pad.top, hpX - pad.left, plotH);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4 * dpr, 3 * dpr]);
+                ctx.beginPath();
+                ctx.moveTo(hpX, pad.top);
+                ctx.lineTo(hpX, pad.top + plotH);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            if (lowPassEnabled) {
+                const lpX = freqToX(lowPassFreq);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.fillRect(lpX, pad.top, pad.left + plotW - lpX, plotH);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4 * dpr, 3 * dpr]);
+                ctx.beginPath();
+                ctx.moveTo(lpX, pad.top);
+                ctx.lineTo(lpX, pad.top + plotH);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // --- Handle track background ---
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+            ctx.fillRect(pad.left, trackY, plotW, trackH);
+
+            // --- HP handle ---
+            const hpX = freqToX(highPassFreq);
+            const hpY = trackY + (trackH - handleH) / 2;
+
+            ctx.fillStyle = highPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.roundRect(hpX - handleW / 2, hpY, handleW, handleH, handleR);
+            ctx.fill();
+
+            // HP label
+            ctx.font = `bold ${11 * dpr}px 'IBM Plex Mono', monospace`;
+            ctx.fillStyle = highPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`HP ${highPassFreq.toFixed(1)}`, hpX + handleW / 2 + 3 * dpr, trackY + trackH / 2);
+
+            // --- LP handle ---
+            const lpX = freqToX(lowPassFreq);
+            const lpY = trackY + (trackH - handleH) / 2;
+
+            ctx.fillStyle = lowPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.roundRect(lpX - handleW / 2, lpY, handleW, handleH, handleR);
+            ctx.fill();
+
+            // LP label — flip to left side if too close to right edge
+            ctx.fillStyle = lowPassEnabled ? 'rgba(200, 200, 200, 0.8)' : 'rgba(255,255,255,0.2)';
+            const lpLabelText = `LP ${lowPassFreq.toFixed(1)}`;
+            const lpLabelW = ctx.measureText(lpLabelText).width;
+            const lpRightEdge = lpX + handleW / 2 + 3 * dpr + lpLabelW;
+            if (lpRightEdge > pad.left + plotW) {
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(lpLabelText, lpX - handleW / 2 - 3 * dpr, trackY + trackH / 2);
+            } else {
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(lpLabelText, lpX + handleW / 2 + 3 * dpr, trackY + trackH / 2);
+            }
+        }
+
         // Draw power spectrum line plot
         function drawSpectrum(data, nChannels, sampleRate) {
             if (data) window._lastSpectrumArgs = [data, nChannels, sampleRate];
             const container = document.getElementById('spectrumContainer');
             const dpr = window.devicePixelRatio;
-            spectrumCanvas.width = container.clientWidth * dpr;
-            spectrumCanvas.height = container.clientHeight * dpr;
-            spectrumCanvas.style.width = '100%';
-            spectrumCanvas.style.height = '100%';
+            const targetW = Math.floor(container.clientWidth * dpr);
+            const targetH = Math.floor(container.clientHeight * dpr);
+
+            // Only resize canvas when dimensions actually change (resizing clears & reallocates)
+            if (spectrumCanvas.width !== targetW || spectrumCanvas.height !== targetH) {
+                spectrumCanvas.width = targetW;
+                spectrumCanvas.height = targetH;
+                spectrumCanvas.style.width = '100%';
+                spectrumCanvas.style.height = '100%';
+            }
 
             const w = spectrumCanvas.width;
             const h = spectrumCanvas.height;
-            const pad = { left: 35 * dpr, right: 10 * dpr, top: 8 * dpr, bottom: 24 * dpr };
+            const handleTrackH = 18 * dpr;  // height of handle area at top
+            const pad = { left: 45 * dpr, right: 10 * dpr, top: handleTrackH + 4 * dpr, bottom: 24 * dpr };
             const plotW = w - pad.left - pad.right;
             const plotH = h - pad.top - pad.bottom;
 
@@ -1197,6 +2222,10 @@
             // Y range: dB (typically -60 to 0)
             const dbMin = -60;
             const dbMax = 0;
+
+            // Plot area background (lighter than outer)
+            specCtx.fillStyle = '#10102a';
+            specCtx.fillRect(pad.left, pad.top, plotW, plotH);
 
             // Grid lines
             specCtx.strokeStyle = 'rgba(255,255,255,0.12)';
@@ -1223,11 +2252,20 @@
             specCtx.textBaseline = 'middle';
             for (let db = dbMin; db <= dbMax; db += 20) {
                 const y = pad.top + ((dbMax - db) / (dbMax - dbMin)) * plotH;
+                // Grid line
                 specCtx.beginPath();
                 specCtx.moveTo(pad.left, y);
                 specCtx.lineTo(pad.left + plotW, y);
                 specCtx.stroke();
-                specCtx.fillText(`${db}`, pad.left - 3 * dpr, y);
+                // Label (pushed further left)
+                specCtx.fillText(`${db}`, pad.left - 12 * dpr, y);
+                // Tick dash connecting label to plot (like waveform)
+                specCtx.strokeStyle = '#444';
+                specCtx.beginPath();
+                specCtx.moveTo(pad.left - 8 * dpr, y);
+                specCtx.lineTo(pad.left, y);
+                specCtx.stroke();
+                specCtx.strokeStyle = 'rgba(255,255,255,0.12)';
             }
 
             // "Hz" label
@@ -1256,12 +2294,18 @@
             }
 
             // Border
-            specCtx.strokeStyle = 'rgba(255,255,255,0.1)';
-            specCtx.lineWidth = 1;
+            specCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+            specCtx.lineWidth = 1.5;
             specCtx.strokeRect(pad.left, pad.top, plotW, plotH);
 
-            // If no data, just show the empty axes
-            if (!data || data.length === 0) return;
+            // Cache layout state so filter handles are interactive even without data
+            lastSpectrumState = { freqs: null, power: null, nBins: 0, pad, plotW, plotH, w, h, dpr, dbMin, dbMax, maxFreq, minFreq, freqToX, handleTrackH };
+
+            // If no data, draw filter handles on empty axes and return
+            if (!data || data.length === 0) {
+                drawFilterOverlay(specCtx, pad, plotW, plotH, w, h, dpr, freqToX, handleTrackH);
+                return;
+            }
 
             const spectrum = computeSpectrum(data, nChannels, sampleRate);
             if (!spectrum) return;
@@ -1311,8 +2355,17 @@
             }
             specCtx.stroke();
 
+            // Cache the base layer (grid + curve, no filter overlay) for cheap redraws during drag
+            if (!_spectrumBaseCanvas) _spectrumBaseCanvas = document.createElement('canvas');
+            _spectrumBaseCanvas.width = w;
+            _spectrumBaseCanvas.height = h;
+            _spectrumBaseCanvas.getContext('2d').drawImage(spectrumCanvas, 0, 0);
+
+            // Draw filter overlay and handles
+            drawFilterOverlay(specCtx, pad, plotW, plotH, w, h, dpr, freqToX, handleTrackH);
+
             // Cache state for hover
-            lastSpectrumState = { freqs, power, nBins, pad, plotW, plotH, w, h, dpr, dbMin, dbMax, maxFreq, minFreq, freqToX };
+            lastSpectrumState = { freqs, power, nBins, pad, plotW, plotH, w, h, dpr, dbMin, dbMax, maxFreq, minFreq, freqToX, handleTrackH };
 
             // Draw hover overlay if active
             if (spectrumHoverX >= 0) drawSpectrumHover(spectrumHoverVisible);
@@ -1320,7 +2373,7 @@
 
         function drawSpectrumHover(showLabel) {
             const s = lastSpectrumState;
-            if (!s || spectrumHoverX < 0) return;
+            if (!s || spectrumHoverX < 0 || !s.freqs) return;
             const { freqs, power, nBins, pad, plotW, plotH, dpr, dbMin, dbMax, maxFreq, minFreq, freqToX } = s;
 
             // Convert CSS mouse X to canvas X
@@ -1419,26 +2472,172 @@
             spectrumFadeAnim = requestAnimationFrame(fadeStep);
         }
 
+        // Convert CSS x position on spectrum canvas to frequency (reverse of freqToX)
+        function spectrumXToFreq(cssX) {
+            const s = lastSpectrumState;
+            if (!s) return null;
+            const cx = cssX * s.dpr;
+            const ratio = Math.max(0, Math.min(1, (cx - s.pad.left) / s.plotW));
+            const sqrtF = Math.sqrt(s.minFreq) + ratio * (Math.sqrt(s.maxFreq) - Math.sqrt(s.minFreq));
+            return sqrtF * sqrtF;
+        }
+
+        // Check if CSS position is near a filter handle (returns 'hp', 'lp', or null)
+        function hitTestFilterHandle(cssX, cssY) {
+            const s = lastSpectrumState;
+            if (!s) return null;
+            const trackH = s.handleTrackH / s.dpr;
+            if (cssY > trackH + 6) return null;
+
+            const hpCssX = s.freqToX(highPassFreq) / s.dpr;
+            const lpCssX = s.freqToX(lowPassFreq) / s.dpr;
+            const hitRadius = 14;
+
+            const hpDist = Math.abs(cssX - hpCssX);
+            const lpDist = Math.abs(cssX - lpCssX);
+
+            if (hpDist <= hitRadius && hpDist <= lpDist) return 'hp';
+            if (lpDist <= hitRadius) return 'lp';
+            return null;
+        }
+
+        const MIN_FILTER_GAP = 1.0; // Hz — minimum gap between HP and LP
+
+        // Apply filter state changes to waveform and audio nodes
+        function applyFilterChange() {
+            minimapCacheDirty = true;
+            // Update audio filter nodes immediately (cheap)
+            if (highPassFilterNode) highPassFilterNode.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
+            if (lowPassFilterNode) lowPassFilterNode.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+            if (scrubHPFilter) scrubHPFilter.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
+            if (scrubLPFilter) scrubLPFilter.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+
+            // During playback or filter drag, the animation loop / mousemove handler covers redraws
+            if (isPlaying || filterDragging) return;
+
+            // Full redraw (not playing, not dragging) — use sync zero-alloc path
+            if (regionData) {
+                const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, regionData.duration_seconds);
+                const data = getDataFromCacheSync(currentViewStart, viewEnd);
+                if (data && data.length > 0) {
+                    const filtered = applyFilters(data, regionData.n_channels, regionData.sample_rate);
+                    drawTimeRangeSync(currentViewStart, VIEW_WINDOW, filtered, true);
+                    drawPlayhead();
+                }
+                drawMinimap();
+            }
+        }
+
+        spectrumCanvas.addEventListener('mousedown', (e) => {
+            const rect = spectrumCanvas.getBoundingClientRect();
+            const cssX = e.clientX - rect.left;
+            const cssY = e.clientY - rect.top;
+            const hit = hitTestFilterHandle(cssX, cssY);
+            if (hit) {
+                filterDragging = hit;
+                filterClickStart = { x: cssX, time: performance.now() };
+                e.preventDefault();
+            }
+        });
+
+        let _filterDragRAF = 0;
+        document.addEventListener('mousemove', (e) => {
+            if (!filterDragging) return;
+            const rect = spectrumCanvas.getBoundingClientRect();
+            const cssX = e.clientX - rect.left;
+            const freq = spectrumXToFreq(cssX);
+            if (freq === null) return;
+
+            if (filterDragging === 'hp') {
+                if (!highPassEnabled) highPassEnabled = true;
+                const maxHP = lowPassEnabled ? lowPassFreq - MIN_FILTER_GAP : 499;
+                highPassFreq = Math.max(0.1, Math.min(freq, maxHP));
+            } else {
+                if (!lowPassEnabled) lowPassEnabled = true;
+                const minLP = highPassEnabled ? highPassFreq + MIN_FILTER_GAP : 0.2;
+                lowPassFreq = Math.max(minLP, Math.min(freq, 500));
+            }
+
+            // Update audio nodes immediately (cheap)
+            if (highPassFilterNode) highPassFilterNode.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
+            if (lowPassFilterNode) lowPassFilterNode.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+            if (scrubHPFilter) scrubHPFilter.frequency.value = highPassEnabled ? highPassFreq * 44.1 : 0;
+            if (scrubLPFilter) scrubLPFilter.frequency.value = lowPassEnabled ? lowPassFreq * 44.1 : 22050;
+            minimapCacheDirty = true;
+
+            // During drag: ONLY update the spectrum filter handle overlay.
+            // Waveform + minimap are deferred to mouseup — they're too expensive per-frame.
+            if (!_filterDragRAF) {
+                _filterDragRAF = requestAnimationFrame(() => {
+                    _filterDragRAF = 0;
+                    redrawSpectrumOverlay();
+                });
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!filterDragging) return;
+            const rect = spectrumCanvas.getBoundingClientRect();
+            const cssX = e.clientX - rect.left;
+            const wasClick = filterClickStart &&
+                Math.abs(cssX - filterClickStart.x) < 3 &&
+                (performance.now() - filterClickStart.time) < 300;
+
+            if (wasClick) {
+                if (filterDragging === 'hp') highPassEnabled = !highPassEnabled;
+                else lowPassEnabled = !lowPassEnabled;
+                applyFilterChange();
+            }
+
+            filterDragging = null;
+            filterClickStart = null;
+            // Full redraw now that drag is done: spectrum (with FFT), waveform, minimap
+            if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+            if (regionData && !isPlaying) {
+                const viewEnd = Math.min(currentViewStart + VIEW_WINDOW, regionData.duration_seconds);
+                const data = getDataFromCacheSync(currentViewStart, viewEnd);
+                if (data && data.length > 0) {
+                    const filtered = applyFilters(data, regionData.n_channels, regionData.sample_rate);
+                    drawTimeRangeSync(currentViewStart, VIEW_WINDOW, filtered, true);
+                    drawPlayhead();
+                }
+            }
+            if (minimapCacheDirty) drawMinimap();
+        });
+
+        // Cursor + hover: handle track gets grab cursor, plot area gets crosshair + hover
         spectrumCanvas.addEventListener('mousemove', (e) => {
             const rect = spectrumCanvas.getBoundingClientRect();
-            const newX = e.clientX - rect.left;
+            const cssX = e.clientX - rect.left;
+            const cssY = e.clientY - rect.top;
 
-            // Always update crosshair position immediately
-            spectrumHoverX = newX;
+            if (filterDragging) {
+                spectrumCanvas.style.cursor = 'grabbing';
+                spectrumHoverX = -1;
+                return;
+            }
 
-            if (spectrumHoverVisible) {
-                // Label already showing, just redraw
+            const hit = hitTestFilterHandle(cssX, cssY);
+            if (hit) {
+                spectrumCanvas.style.cursor = 'grab';
+                spectrumHoverX = -1;
+                if (spectrumHoverTimer) { clearTimeout(spectrumHoverTimer); spectrumHoverTimer = null; }
+                spectrumHoverVisible = false;
+                spectrumLabelOpacity = 0;
                 if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
                 return;
             }
 
-            // Reset timer for label appearance
-            if (spectrumHoverTimer) clearTimeout(spectrumHoverTimer);
-            spectrumHoverTimer = setTimeout(() => {
-                startLabelFade();
-            }, 200);
+            spectrumCanvas.style.cursor = 'crosshair';
+            spectrumHoverX = cssX;
 
-            // Redraw with crosshair only (no label yet)
+            if (spectrumHoverVisible) {
+                if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+                return;
+            }
+
+            if (spectrumHoverTimer) clearTimeout(spectrumHoverTimer);
+            spectrumHoverTimer = setTimeout(() => { startLabelFade(); }, 200);
             if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
         });
 
