@@ -33,6 +33,7 @@
             margin-bottom: 16px;
             flex-wrap: wrap;
             align-items: center;
+            position: relative;
         }
         select, button {
             padding: 8px 16px;
@@ -370,10 +371,11 @@
         </select>
         <button id="loadBtn" disabled>Load Region</button>
         <button id="playPauseBtn" disabled>▶️ Play</button>
-        <button id="loopBtn" disabled>🔁 Loop</button>
-        <span style="color: rgba(255,255,255,0.15); margin: 0 8px;">|</span>
-        <button id="preloadToggle" style="background: #4a7a5a; font-size: 12px; width: 160px; text-align: center;">Preload: Auto</button>
-        <span id="cacheStatus" style="color: rgba(224,224,224,0.5); font-size: 12px; font-family: 'IBM Plex Mono', monospace; margin-left: 8px;"></span>
+        <button id="loopBtn" disabled>🔁 Loop (L)</button>
+        <span id="powerSpectrumLabel" style="position: absolute; right: 0; bottom: -10px; width: calc(100% - 731px); text-align: center; font-size: 16px; font-weight: bold; color: rgba(255,255,255,0.6); font-family: 'IBM Plex Mono', monospace;">Power Spectrum</span>
+    </div>
+    <div id="preloadCorner" style="position: fixed; bottom: 16px; right: 16px; z-index: 9998;">
+        <button id="preloadToggle" style="background: #4a7a5a; font-size: 10px; padding: 1px 6px; line-height: 1.2; text-align: center;">Preload: Auto</button>
     </div>
 
     <!--
@@ -420,11 +422,12 @@
     -->
 
     <div id="status" style="display:none;"></div>
-    <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-        <div class="info" id="info" style="flex-shrink: 0; width: 715px;">
+    <div style="display: flex; gap: 16px; margin-bottom: 10px;">
+        <div class="info" id="info" style="flex-shrink: 0; width: 715px; min-height: 100px; box-sizing: border-box;">
                 <strong>No Region Loaded</strong><br>
                 Channels: 0 | Duration: 0s | Sample rate: N/A<br>
-                <span style="color: #5FB3B3;">Chunk size: N/A | 0 total chunks</span>
+                <span style="color: #5FB3B3;">Chunk size: N/A | 0 total chunks</span><br>
+                <span id="cacheStatusInfo" style="color: rgba(224,224,224,0.5); font-size: 12px;"></span>
         </div>
         <div id="spectrumContainer" style="flex: 1; background: #0a0a1a; border-radius: var(--box-radius); border: 1px solid rgba(255,255,255,0.1); min-height: 100px; max-height: 100px; min-width: 0; overflow: hidden;">
             <canvas id="spectrum"></canvas>
@@ -438,7 +441,7 @@
         </div>
         <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0;">
             <div class="waveform-panel">
-                <div id="minimapContainer" style="background: #0a0a1a; height: 55px; cursor: pointer; position: relative;">
+                <div id="minimapContainer" style="background: #0a0a1a; height: 55px; cursor: pointer; position: relative; border-radius: var(--box-radius);">
                     <canvas id="minimap" style="display: block; width: 100%; height: 100%;"></canvas>
                 </div>
                 <div id="waveformContainer">
@@ -449,24 +452,24 @@
     </div>
     <div style="display: flex; gap: 16px; margin-top: -16px; margin-bottom: 24px;">
         <div style="flex-shrink: 0; width: 715px;"></div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: rgba(224,224,224,0.5); font-size: 12px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">Gain: <span id="gainValue">2.00</span>×</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="color: rgba(224,224,224,0.85); font-size: 14px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">Gain: <span id="gainValue">2.00</span>×</span>
             <input type="range" id="gainSlider" min="1" max="5" value="2" step="0.01"
                    style="flex: 1; max-width: 300px;">
         </div>
         <!-- Reverb controls -->
-        <div style="display: flex; align-items: center; gap: 8px; margin-left: 16px;">
-            <button id="reverbToggle" style="padding: 4px 10px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #888; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer;">Reverb</button>
-            <select id="reverbIRSelect" style="padding: 4px 8px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #e0e0e0; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-left: 16px;">
+            <button id="reverbToggle" style="padding: 5px 16px; font-size: 13px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #aaa; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; cursor: pointer; height: 30px; box-sizing: border-box; white-space: nowrap;">Reverb (R)</button>
+            <select id="reverbIRSelect" style="padding: 5px 10px; font-size: 13px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #e0e0e0; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; height: 30px; box-sizing: border-box;">
             </select>
-            <span style="color: rgba(224,224,224,0.5); font-size: 11px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">Wet: <span id="reverbWetValue">30</span>%</span>
+            <span style="color: rgba(224,224,224,0.85); font-size: 14px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; display: inline-block; width: 75px;">Wet: <span id="reverbWetValue">30</span>%</span>
             <input type="range" id="reverbWetSlider" min="0" max="100" value="30" step="1"
-                   style="width: 80px;">
+                   style="width: 100px;">
         </div>
         <!-- Paul Stretch window size -->
-        <div style="display: flex; align-items: center; gap: 8px; margin-left: 16px;">
-            <span style="color: rgba(224,224,224,0.5); font-size: 11px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">PS Win:</span>
-            <select id="psWindowSize" style="padding: 4px 8px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #e0e0e0; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-left: 16px;">
+            <span style="color: rgba(224,224,224,0.85); font-size: 14px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;">PS Window Size:</span>
+            <select id="psWindowSize" style="padding: 5px 10px; font-size: 13px; font-family: 'IBM Plex Mono', monospace; background: #2a2a4a; color: #e0e0e0; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;">
                 <option value="1024">1024</option>
                 <option value="2048">2048</option>
                 <option value="4096" selected>4096</option>
@@ -803,7 +806,7 @@
                     await fetchChunk(i);
                 }
             }
-            document.getElementById('cacheStatus').textContent = `All ${totalChunks} chunks loaded!`;
+            document.getElementById('cacheStatusInfo').textContent = `All ${totalChunks} chunks loaded!`;
             drawMinimap(); // Redraw minimap with all data
             updateScrubBuffer(); // Refresh scrub audio with complete data
             buildMonoBuffer(); // Pre-build audio buffer so first play is instant
@@ -974,9 +977,9 @@
 
                 loadBtn.disabled = false;
                 loadBtn.classList.add('pulse');
-                document.getElementById('cacheStatus').textContent = 'Ready. Press Enter or click Load.';
+                document.getElementById('cacheStatusInfo').textContent = 'Ready. Press Enter or click Load.';
             } catch (err) {
-                document.getElementById('cacheStatus').textContent = `Error: ${err.message}`;
+                document.getElementById('cacheStatusInfo').textContent = `Error: ${err.message}`;
                 console.error(err);
             }
         }
@@ -1030,7 +1033,8 @@
             info.innerHTML = `
                 <strong>${region.description}</strong><br>
                 Channels: ${region.n_channels} | Duration: ${region.duration_seconds}s | Sample rate: ${region.sample_rate} Hz<br>
-                <span style="color: #5FB3B3;">Chunk size: ${CHUNK_DURATION}s (${(bytesPerChunk/1024).toFixed(0)} KB) | ${totalChunks} total chunks</span>
+                <span style="color: #5FB3B3;">Chunk size: ${CHUNK_DURATION}s (${(bytesPerChunk/1024).toFixed(0)} KB) | ${totalChunks} total chunks</span><br>
+                <span id="cacheStatusInfo" style="color: rgba(224,224,224,0.5); font-size: 12px;"></span>
             `;
 
             // Setup canvas
@@ -1062,7 +1066,7 @@
             playPauseBtn.disabled = false;
             loopBtn.disabled = false;
             loadBtn.disabled = false;
-            document.getElementById('cacheStatus').textContent = 'Loaded. Streaming chunks.';
+            document.getElementById('cacheStatusInfo').textContent = 'Loaded. Streaming chunks.';
 
             // Initialize scrub worklet (Paul stretch for minimap drag)
             if (!scrubWorkletReady) {
@@ -1109,12 +1113,12 @@
                 const isSelected = selectedChannels.has(ch);
                 if (isSelected) {
                     ctx.fillStyle = color;
-                    ctx.font = `bold ${10 * window.devicePixelRatio}px monospace`;
+                    ctx.font = `bold ${12 * window.devicePixelRatio}px monospace`;
                     ctx.shadowColor = color;
                     ctx.shadowBlur = 6 * window.devicePixelRatio;
                 } else {
                     ctx.fillStyle = '#555';
-                    ctx.font = `${10 * window.devicePixelRatio}px monospace`;
+                    ctx.font = `${12 * window.devicePixelRatio}px monospace`;
                     ctx.shadowColor = 'transparent';
                     ctx.shadowBlur = 0;
                 }
@@ -1335,9 +1339,16 @@
             minimapCtx.fillRect(vpLeft, 0, vpRight - vpLeft, h);
 
             // Viewport border
-            minimapCtx.strokeStyle = 'rgba(95,179,179,1.0)';
-            minimapCtx.lineWidth = 2.5;
+            minimapCtx.strokeStyle = 'rgba(95,179,179,0.5)';
+            minimapCtx.lineWidth = 2;
             minimapCtx.strokeRect(vpLeft, 0, vpRight - vpLeft, h);
+
+            // White border around plot area only (rounded)
+            minimapCtx.strokeStyle = 'rgba(255,255,255,0.35)';
+            minimapCtx.lineWidth = 1.5 * dpr;
+            minimapCtx.beginPath();
+            minimapCtx.roundRect(labelWidth, 0, w - labelWidth, h, 8 * dpr);
+            minimapCtx.stroke();
 
             // Playhead line
             if (currentPlayheadTime !== null) {
@@ -1554,7 +1565,15 @@
         function updateScrubBuffer() {
             if (!scrubWorkletReady || !scrubWorkletNode) return;
             const mono = buildMonoBuffer();
-            if (!mono) return;
+            if (!mono) {
+                // No active channels — send silence so Paul stretch stops outputting audio
+                scrubMonoBuffer = null;
+                scrubWorkletNode.port.postMessage({
+                    type: 'load-audio',
+                    data: { samples: Array.from(new Float32Array(1024)) }
+                });
+                return;
+            }
             scrubMonoBuffer = mono;
             // Send a copy so the main thread retains its buffer
             const copy = new Float32Array(mono);
@@ -1864,8 +1883,8 @@
             // Ensure channel cache is built
             if (_channelColors.length !== nChannels) _buildChannelCache(nChannels);
 
-            const fontNormal = `${10 * dpr}px monospace`;
-            const fontBold = `bold ${10 * dpr}px monospace`;
+            const fontNormal = `${12 * dpr}px monospace`;
+            const fontBold = `bold ${12 * dpr}px monospace`;
             const samplesPerPixel = nSamples / waveformWidth;
 
             // Draw labels for all channels
@@ -1877,6 +1896,17 @@
                 ctx.fillStyle = isSelected ? _channelColors[ch] : '#555';
                 ctx.font = isSelected ? fontBold : fontNormal;
                 ctx.fillText(_channelShortNames[ch], labelWidth - 15 * dpr, y);
+            }
+
+            // Draw dash connectors from labels to waveform area
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            for (let ch = 0; ch < nChannels; ch++) {
+                const y = ch * channelHeight + channelHeight / 2;
+                ctx.beginPath();
+                ctx.moveTo(labelWidth - 10 * dpr, y);
+                ctx.lineTo(labelWidth, y);
+                ctx.stroke();
             }
 
             // Batch all unselected channels into ONE path (same color/width)
@@ -1985,10 +2015,39 @@
 
         loadBtn.addEventListener('click', loadRegion);
 
-        // Sensor map click zones
+        // Sensor map click zones — toggle: click to load, click again to unload
         document.getElementById('sensorClickLeftOccipital').addEventListener('click', () => {
-            regionSelect.value = 'left_occipital';
-            loadRegion();
+            if (_loadedRegionKey === 'left_occipital') {
+                // Unload
+                if (isPlaying) pauseAudio();
+                stopScrub();
+                regionData = null;
+                _loadedRegionKey = null;
+                chunkCache = new Map();
+                loadingChunks = new Set();
+                invalidateMonoCache();
+                minimapCacheDirty = true;
+                minimapCacheCanvas = null;
+                currentPlayheadTime = null;
+                currentViewStart = 0;
+                if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+                // Clear canvases
+                const ctx2 = canvas.getContext('2d');
+                ctx2.clearRect(0, 0, canvas.width, canvas.height);
+                minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+                const specCanvas = document.getElementById('spectrumCanvas');
+                if (specCanvas) specCanvas.getContext('2d').clearRect(0, 0, specCanvas.width, specCanvas.height);
+                // Reset UI
+                document.getElementById('sensorImg').src = 'sensor_layout.jpeg';
+                info.innerHTML = '<strong>No Region Loaded</strong><br>Channels: 0 | Duration: 0s | Sample rate: N/A<br><span style="color: #5FB3B3;">Chunk size: N/A | 0 total chunks</span><br><span id="cacheStatusInfo" style="color: rgba(224,224,224,0.5); font-size: 12px;"></span>';
+                status.textContent = 'Region unloaded.';
+                playPauseBtn.disabled = true;
+                loopBtn.disabled = true;
+                document.getElementById('cacheStatusInfo').textContent = '';
+            } else {
+                regionSelect.value = 'left_occipital';
+                loadRegion();
+            }
         });
 
         playPauseBtn.addEventListener('click', (e) => {
@@ -2029,6 +2088,29 @@
                 if (e.target.matches('input, select, textarea')) return;
                 const btn = document.getElementById('edpPlay');
                 if (btn) btn.click();
+            } else if (e.key === 'r' || e.key === 'R') {
+                if (e.target.matches('input, select, textarea')) return;
+                document.getElementById('reverbToggle').click();
+            } else if (e.key >= '1' && e.key <= '9') {
+                if (e.target.matches('input, select, textarea')) return;
+                if (!regionData || !regionData.channels) return;
+                const channelMap = {
+                    '1': 'MEG1713', '2': 'MEG1722', '3': 'MEG1732',
+                    '4': 'MEG1912', '5': 'MEG1922', '6': 'MEG1923',
+                    '7': 'MEG1932', '8': 'MEG1933', '9': 'MEG2112'
+                };
+                const name = channelMap[e.key];
+                const idx = regionData.channels.indexOf(name);
+                if (idx === -1) return;
+                selectedChannels.clear();
+                selectedChannels.add(idx);
+                minimapCacheDirty = true;
+                drawTimeRange(currentViewStart, VIEW_WINDOW).then(() => {
+                    drawPlayhead();
+                    drawMinimap();
+                });
+                if (isPlaying) { pauseAudio(); playAudio(); }
+                updateScrubBuffer();
             }
         });
 
@@ -2204,14 +2286,23 @@
         // Gain slider - redraw waveform with new amplitude
         const gainSlider = document.getElementById('gainSlider');
         const gainValueEl = document.getElementById('gainValue');
+        let gainDragging = false;
+        gainSlider.addEventListener('mousedown', () => { gainDragging = true; });
+        window.addEventListener('mouseup', () => {
+            if (gainDragging) {
+                gainDragging = false;
+                if (regionData) {
+                    minimapCacheDirty = true;
+                    drawMinimap();
+                }
+            }
+        });
         gainSlider.addEventListener('input', async () => {
             const gain = parseFloat(gainSlider.value);
             gainValueEl.textContent = gain.toFixed(2);
             if (regionData) {
-                minimapCacheDirty = true;
                 await drawTimeRange(currentViewStart, VIEW_WINDOW);
                 drawPlayhead();
-                drawMinimap();
             }
         });
 
@@ -2238,7 +2329,7 @@
                 // Load the default IR on first enable
                 reverbToggleBtn.textContent = 'Loading...';
                 await loadIR(reverbIRSelect.value);
-                reverbToggleBtn.textContent = 'Reverb';
+                reverbToggleBtn.textContent = 'Reverb (R)';
             }
             // Rebuild scrub chain to include/exclude reverb
             if (scrubWorkletReady) {
@@ -2682,8 +2773,8 @@
             if (spectrumCanvas.width !== targetW || spectrumCanvas.height !== targetH) {
                 spectrumCanvas.width = targetW;
                 spectrumCanvas.height = targetH;
-                spectrumCanvas.style.width = '100%';
-                spectrumCanvas.style.height = '100%';
+                spectrumCanvas.style.width = container.clientWidth + 'px';
+                spectrumCanvas.style.height = container.clientHeight + 'px';
             }
 
             const w = spectrumCanvas.width;
@@ -2795,6 +2886,12 @@
             if (!spectrum) return;
             const { freqs, power, nBins } = spectrum;
 
+            // Clip to plot area so curves don't extend beyond border
+            specCtx.save();
+            specCtx.beginPath();
+            specCtx.rect(pad.left, pad.top, plotW, plotH);
+            specCtx.clip();
+
             // Draw spectrum fill (area under curve)
             specCtx.beginPath();
             let started = false;
@@ -2839,6 +2936,9 @@
             }
             specCtx.stroke();
 
+            // Restore from clip
+            specCtx.restore();
+
             // Cache the base layer (grid + curve, no filter overlay) for cheap redraws during drag
             if (!_spectrumBaseCanvas) _spectrumBaseCanvas = document.createElement('canvas');
             _spectrumBaseCanvas.width = w;
@@ -2847,6 +2947,13 @@
 
             // Draw filter overlay and handles
             drawFilterOverlay(specCtx, pad, plotW, plotH, w, h, dpr, freqToX, handleTrackH);
+
+            // White rounded border around plot area
+            specCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+            specCtx.lineWidth = 2 * dpr;
+            specCtx.beginPath();
+            specCtx.roundRect(pad.left, pad.top, plotW, plotH, 8 * dpr);
+            specCtx.stroke();
 
             // Cache state for hover
             lastSpectrumState = { freqs, power, nBins, pad, plotW, plotH, w, h, dpr, dbMin, dbMax, maxFreq, minFreq, freqToX, handleTrackH };
@@ -3629,6 +3736,11 @@
                     }
                     drawMinimap();
                     drawPlayhead();
+                    // Redraw the main waveform to show the new position
+                    drawTimeRange(currentViewStart, VIEW_WINDOW).then(() => {
+                        drawPlayhead();
+                        if (window._lastSpectrumArgs) drawSpectrum(...window._lastSpectrumArgs);
+                    });
                 }
 
                 loopId = requestAnimationFrame(detectionLoop);
